@@ -48,10 +48,11 @@ const translations = {
     languageEnglish: 'English',
     languageTelugu: 'Telugu',
     selectDay: 'Training Day',
-    startFinisher: 'Start 7‑min Finisher',
+    startFinisher: 'Start Finisher (7:00)',
     finisherRunning: 'Finisher running…',
     pause: 'Pause',
     reset: 'Reset',
+    estimateKg: 'Estimate kg',
     finisherDefault: 'Superman Finisher',
     finisherBodyweight: 'Bodyweight Only',
     finisherLowImpact: 'Low Impact',
@@ -84,10 +85,11 @@ const translations = {
     languageEnglish: 'ఆంగ్లం',
     languageTelugu: 'తెలుగు',
     selectDay: 'తరబడి రోజు',
-    startFinisher: '7 నిమిషాల ఫినిషర్ ప్రారంభించండి',
+    startFinisher: 'ఫినిషర్ ప్రారంభించు (7:00)',
     finisherRunning: 'ఫినిషర్ నడుస్తోంది…',
     pause: 'పాజ్',
     reset: 'రిసెట్',
+    estimateKg: 'కిలోలు అంచనా',
     finisherDefault: 'సూపర్‌మ్యాన్ ఫినిషర్',
     finisherBodyweight: 'బాడీవెయిట్ మాత్రమే',
     finisherLowImpact: 'లో ఇంపాక్ట్',
@@ -307,7 +309,13 @@ const affirmations = [
   'Your iron will defines your arc.',
   'Sweat is your armour, pain is your forge.',
   'Rise. Grind. Conquer.',
-  'Today’s effort shapes tomorrow’s hero.'
+  'Today’s effort shapes tomorrow’s hero.',
+  'Hydrate. Dominate.',
+  'Small plates. Big wins.',
+  'Move clean. Grow mean.',
+  'Respect the joints. Chase the pump.',
+  'Today’s work, tomorrow’s armor.',
+  'Consistency is the superpower.'
 ];
 
 /*
