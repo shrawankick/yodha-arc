@@ -98,6 +98,14 @@ select {
   font-size: 0.9rem;
 }
 
+input.starting-weight-input {
+  min-width: 140px;
+}
+
+#planCards {
+  display: none;
+}
+
 label {
   font-size: 0.9rem;
   font-weight: 500;
@@ -149,4 +157,45 @@ footer {
 #timerContainer {
   font-size: 2rem;
   text-align: center;
+}
+
+@media (max-width: 640px) {
+  .table {
+    display: none;
+  }
+
+  #planCards {
+    display: block;
+  }
+
+  .exercise-card {
+    border: 1px solid #e5e7eb;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .exercise-card h4 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+  }
+
+  .exercise-meta {
+    font-size: 0.875rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+
+  .exercise-notes {
+    font-size: 0.875rem;
+    color: #374151;
+  }
+
+  .starting-weight-input {
+    width: 100%;
+    height: 44px;
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
 }
