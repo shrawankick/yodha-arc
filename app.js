@@ -498,7 +498,7 @@ function render() {
   `;
   // Build the checklist
   const checklistHTML = `
-    <div>
+    <div id="checklistSection">
       <h3>${t('checklistTitle')}</h3>
       <label><input type="checkbox" data-check="water" /> ${t('checklistWater')}</label><br />
       <label><input type="number" min="0" max="12" step="0.5" data-check="sleep" placeholder="${t('checklistSleep')}" /> </label><br />

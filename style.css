@@ -8,6 +8,13 @@
   units where possible to better adapt to different screen sizes.
 */
 
+/* Ensure padding is included in element width calculations */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html, body {
   height: 100%;
   margin: 0;
@@ -149,6 +156,12 @@ footer {
 }
 
 /* Finisher list and timer */
+#finisherSection,
+#checklistSection {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
 #finisherSection ul {
   list-style: none;
   padding-left: 0;
