@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!--
+    Yodha Arc – Cavill Physique Coach (MVP)
+
+    This is the entry point for the PWA. It loads our application code from
+    ``app.js`` and styles from ``style.css``. The head section contains
+    meta‑tags required to enable progressive‑web‑app functionality (add to
+    homescreen, full screen, etc.) as well as linking the web app manifest
+    (``manifest.json``) and registering the service worker (in ``app.js``).
+
+    The HTML structure is intentionally minimal because almost all content is
+    generated dynamically by JavaScript. The main container ``#app`` is
+    populated once the script has executed.
+  -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b3d91" />
+    <title>Yodha Arc</title>
+    <!-- Link to the web app manifest -->
+    <link rel="manifest" href="manifest.json" />
+    <!-- Import styles for the application -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- The root element into which the application will render. -->
+    <div id="app"></div>
+    <!--
+      Load the application script. The ``defer`` attribute ensures the
+      script executes only after the HTML is parsed. All application logic
+      resides in this file, including UI rendering, data persistence, and
+      workout generation. See ``app.js`` for details.
+    -->
+    <script defer src="app.js"></script>
+  </body>
+</html>
