@@ -24,8 +24,30 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div id="styleScreen" class="style-screen" aria-labelledby="styleScreenTitle" role="dialog">
+      <h2 id="styleScreenTitle">Choose Your Workout Style</h2>
+      <p class="style-subtitle">Pick how you want to train today. You can change this anytime.</p>
+      <div class="style-grid">
+        <button class="style-card" data-style="home" aria-label="Home Workout">
+          <div class="style-card-title">Home Workout</div>
+          <div class="style-card-desc">Bodyweight + DB/KB. Minimal gear.</div>
+        </button>
+        <button class="style-card" data-style="gym" aria-label="Gym Workout">
+          <div class="style-card-title">Gym Workout</div>
+          <div class="style-card-desc">Full equipment. Barbell/Machines OK.</div>
+        </button>
+        <button class="style-card" data-style="cardio" aria-label="Cardio">
+          <div class="style-card-title">Cardio</div>
+          <div class="style-card-desc">25–40 min steady or intervals.</div>
+        </button>
+        <button class="style-card" data-style="recovery" aria-label="Active Recovery">
+          <div class="style-card-title">Active Recovery</div>
+          <div class="style-card-desc">Mobility + easy movement.</div>
+        </button>
+      </div>
+    </div>
     <!-- The root element into which the application will render. -->
-    <div id="app">
+    <div id="app" class="hidden">
       <div id="planTable"></div>
       <div id="planCards" aria-live="polite"></div>
     </div>
