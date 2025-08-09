@@ -25,7 +25,10 @@
   </head>
   <body>
     <!-- The root element into which the application will render. -->
-    <div id="app"></div>
+    <div id="app">
+      <div id="planTable"></div>
+      <div id="planCards" aria-live="polite"></div>
+    </div>
     <!--
       Load the application script. The ``defer`` attribute ensures the
       script executes only after the HTML is parsed. All application logic
