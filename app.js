@@ -50,6 +50,11 @@ const translations = {
     selectDay: 'Training Day',
     startFinisher: 'Start 7‑min Finisher',
     finisherRunning: 'Finisher running…',
+    pause: 'Pause',
+    reset: 'Reset',
+    finisherDefault: 'Superman Finisher',
+    finisherBodyweight: 'Bodyweight Only',
+    finisherLowImpact: 'Low Impact',
     exportCSV: 'Export CSV',
     warmup: 'Warm‑up (8–10 min): mobility + ramp sets for the compound lift.',
     cooldown: 'Cooldown (optional 3–5 min): breathing & light mobility.',
@@ -81,6 +86,11 @@ const translations = {
     selectDay: 'తరబడి రోజు',
     startFinisher: '7 నిమిషాల ఫినిషర్ ప్రారంభించండి',
     finisherRunning: 'ఫినిషర్ నడుస్తోంది…',
+    pause: 'పాజ్',
+    reset: 'రిసెట్',
+    finisherDefault: 'సూపర్‌మ్యాన్ ఫినిషర్',
+    finisherBodyweight: 'బాడీవెయిట్ మాత్రమే',
+    finisherLowImpact: 'లో ఇంపాక్ట్',
     exportCSV: 'CSV ఎగుమతి',
     warmup: 'వార్మ్‑అప్ (8–10 నిమిషాలు): మోబిలిటీ + ప్రధాన లిఫ్ట్ కోసం ర్యాంప్ సెట్లు.',
     cooldown: 'సడలింపు (ఐచ్ఛికం 3–5 నిమిషాలు): శ్వాస & తేలికపాటి మొబిలిటీ.',
@@ -102,6 +112,57 @@ const translations = {
   }
 };
 
+// Finisher library
+const FINISHERS = {
+  default: [
+    { name: 'Jumping Jacks', reps: 15 },
+    { name: 'KB/DB Swings', reps: 12 },
+    { name: 'DB Snatches (each arm 5)', reps: 10 },
+    { name: 'Mountain Climbers', reps: 20 },
+  ],
+  bodyweight: [
+    { name: 'High Knees', reps: 20 },
+    { name: 'Push-ups', reps: 10 },
+    { name: 'Air Squats', reps: 10 },
+    { name: 'Mountain Climbers', reps: 20 },
+  ],
+  lowImpact: [
+    { name: 'Step-backs', reps: 10 },
+    { name: 'Hip-hinge Good-mornings', reps: 12 },
+    { name: 'DB Rows (5/arm)', reps: 10 },
+    { name: 'March-in-place', reps: 20 },
+  ],
+};
+
+// Utility helpers for deterministic plan variation
+function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+}
+
+function computeSeedWeek() {
+  const now = new Date();
+  return now.getFullYear() * 100 + getISOWeek(now);
+}
+
+function hashCode(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(31, h) + str.charCodeAt(i);
+  }
+  return Math.abs(h);
+}
+
+function seededRng(seed) {
+  return function () {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+}
+
 // Helper to get the current translation for a given key. Falls back to the
 // English string if the translation key or language is not found.
 function t(key) {
@@ -122,6 +183,8 @@ const appState = {
   level: 'Beginner',
   language: 'en',
   dayKey: 'FoundationA',
+  finisherType: 'default',
+  seedWeek: computeSeedWeek(),
   logs: [] // Array of logged workouts
 };
 
@@ -268,18 +331,19 @@ const affirmations = [
   ``weight`` is left as 'TBD' by default; users will fill their actual
   starting weight in the UI.
 */
-function generateDailyPlan(dayKey, level) {
+function generateDailyPlan(dayKey, level, seed = Date.now()) {
   const def = dayDefinitions[dayKey];
   if (!def) {
     throw new Error(`Unknown day key: ${dayKey}`);
   }
-  // Choose compound lift at random
-  const compoundLift = def.compoundOptions[Math.floor(Math.random() * def.compoundOptions.length)];
+  const rng = seededRng(seed);
+  // Choose compound lift based on seed
+  const compoundLift = def.compoundOptions[Math.floor(rng() * def.compoundOptions.length)];
   // Determine number of accessories based on training level
   const accessoryCount = level === 'Intermediate' ? 5 : 4;
-  // Randomly shuffle the accessories array and slice the first N elements
+  // Shuffle accessories deterministically
   const shuffledAccessories = def.accessories
-    .map((item) => ({ ...item, sort: Math.random() }))
+    .map((item) => ({ ...item, sort: rng() }))
     .sort((a, b) => a.sort - b.sort)
     .slice(0, accessoryCount);
   // Compose the compound exercise object
@@ -302,8 +366,8 @@ function generateDailyPlan(dayKey, level) {
       notes: `${acc.notes}; rest 45–90s`
     };
   });
-  // Pick a random affirmation
-  const affirmation = affirmations[Math.floor(Math.random() * affirmations.length)];
+  // Pick an affirmation based on seed
+  const affirmation = affirmations[Math.floor(rng() * affirmations.length)];
   return {
     titleKey: def.titleKey,
     compound,
@@ -319,7 +383,7 @@ function generateDailyPlan(dayKey, level) {
   for consumption by tests.
 */
 if (typeof module !== 'undefined') {
-  module.exports = { generateDailyPlan };
+  module.exports = { generateDailyPlan, FINISHERS };
 }
 
 // ----------------------------- UI Rendering ----------------------------------
@@ -340,8 +404,15 @@ if (typeof module !== 'undefined') {
   The timer UI is managed separately by ``startFinisherTimer()``.
 */
 function render() {
-  // Generate the plan for the current state
-  const plan = generateDailyPlan(appState.dayKey, appState.level);
+  // Update weekly seed if week has changed
+  const currentWeek = computeSeedWeek();
+  if (currentWeek !== appState.seedWeek) {
+    appState.seedWeek = currentWeek;
+    saveState();
+  }
+  // Generate the plan for the current state using deterministic seed
+  const seed = appState.seedWeek + hashCode(appState.dayKey);
+  const plan = generateDailyPlan(appState.dayKey, appState.level, seed);
   // Build options for the level select
   const levelOptions = [
     `<option value="Beginner" ${appState.level === 'Beginner' ? 'selected' : ''}>${t('levelBeginner')}</option>`,
@@ -412,6 +483,14 @@ function render() {
       <label><input type="number" min="1" max="5" data-check="mood" placeholder="${t('checklistMood')}" /> </label>
     </div>
   `;
+  const finisherOptions = [
+    `<option value="default" ${appState.finisherType === 'default' ? 'selected' : ''}>${t('finisherDefault')}</option>`,
+    `<option value="bodyweight" ${appState.finisherType === 'bodyweight' ? 'selected' : ''}>${t('finisherBodyweight')}</option>`,
+    `<option value="lowImpact" ${appState.finisherType === 'lowImpact' ? 'selected' : ''}>${t('finisherLowImpact')}</option>`
+  ].join('');
+  const finisherListHTML = FINISHERS[appState.finisherType]
+    .map((m) => `<li>${m.name} – ${m.reps}</li>`)
+    .join('');
   // Render everything into the app container
   const app = document.getElementById('app');
   app.innerHTML = `
@@ -435,8 +514,15 @@ function render() {
       <p>${t('warmup')}</p>
       ${tableHTML}
       <p>${t('cooldown')}</p>
-      <button id="startFinisherBtn" class="btn">${t('startFinisher')}</button>
-      <div id="timerContainer" style="margin-top: 1rem; font-size: 1.2rem;"></div>
+      <div id="finisherSection">
+        <select id="finisherSelect">${finisherOptions}</select>
+        <ul id="finisherList">${finisherListHTML}</ul>
+        <div id="currentMove" style="font-weight: bold; margin-top: 0.5rem;"></div>
+        <div id="timerContainer" style="margin-top: 1rem; font-size: 1.2rem;">07:00</div>
+        <button id="startFinisherBtn" class="btn">${t('startFinisher')}</button>
+        <button id="pauseFinisherBtn" class="btn">${t('pause')}</button>
+        <button id="resetFinisherBtn" class="btn">${t('reset')}</button>
+      </div>
       ${checklistHTML}
       <button id="exportBtn" class="btn">${t('exportCSV')}</button>
     </main>
@@ -458,8 +544,19 @@ function render() {
     saveState();
     render();
   });
+  document.getElementById('finisherSelect').addEventListener('change', (e) => {
+    appState.finisherType = e.target.value;
+    saveState();
+    render();
+  });
   document.getElementById('startFinisherBtn').addEventListener('click', () => {
-    startFinisherTimer(7 * 60); // 7 minutes in seconds
+    startFinisherTimer(7 * 60, FINISHERS[appState.finisherType]);
+  });
+  document.getElementById('pauseFinisherBtn').addEventListener('click', () => {
+    pauseFinisherTimer();
+  });
+  document.getElementById('resetFinisherBtn').addEventListener('click', () => {
+    resetFinisherTimer();
   });
   document.getElementById('exportBtn').addEventListener('click', () => {
     exportCSV();
@@ -468,32 +565,71 @@ function render() {
 
 // ----------------------------- Finisher Timer --------------------------------
 
-/*
-  startFinisherTimer(duration: number): void
-
-  Starts a countdown timer of ``duration`` seconds and updates the UI every
-  second. The timer loops through the simple finisher movements described in
-  the specification (jumping jacks, swings, snatches, mountain climbers).
-  Each loop is executed continuously until the timer expires. When the
-  countdown ends the timer area displays 'Done!'.
-*/
 let timerInterval = null;
-function startFinisherTimer(duration) {
+const finisherState = { time: 0, moves: [], moveIndex: 0 };
+
+function startFinisherTimer(duration, moves) {
   const timerContainer = document.getElementById('timerContainer');
-  let timeRemaining = duration;
-  // If a timer is already running, clear it first
+  const moveEl = document.getElementById('currentMove');
+  finisherState.time = duration;
+  finisherState.moves = moves || [];
+  finisherState.moveIndex = 0;
+  if (finisherState.moves[0]) {
+    moveEl.textContent = `${finisherState.moves[0].name} x ${finisherState.moves[0].reps}`;
+  }
+  timerContainer.textContent = `${t('timerLabel')} ${formatTime(finisherState.time)}`;
   if (timerInterval) clearInterval(timerInterval);
-  timerContainer.textContent = `${t('timerLabel')} ${formatTime(timeRemaining)}`;
   timerInterval = setInterval(() => {
-    timeRemaining--;
-    if (timeRemaining <= 0) {
+    finisherState.time--;
+    if (finisherState.time <= 0) {
       clearInterval(timerInterval);
       timerInterval = null;
-      timerContainer.textContent = 'Done!';
+      timerContainer.textContent = '00:00';
+      moveEl.textContent = '';
     } else {
-      timerContainer.textContent = `${t('timerLabel')} ${formatTime(timeRemaining)}`;
+      timerContainer.textContent = `${t('timerLabel')} ${formatTime(finisherState.time)}`;
+      if (finisherState.time % 30 === 0 && finisherState.moves.length) {
+        finisherState.moveIndex = (finisherState.moveIndex + 1) % finisherState.moves.length;
+        const m = finisherState.moves[finisherState.moveIndex];
+        moveEl.textContent = `${m.name} x ${m.reps}`;
+      }
     }
   }, 1000);
+}
+
+function pauseFinisherTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  } else if (finisherState.time > 0) {
+    timerInterval = setInterval(() => {
+      finisherState.time--;
+      if (finisherState.time <= 0) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        document.getElementById('timerContainer').textContent = '00:00';
+        document.getElementById('currentMove').textContent = '';
+      } else {
+        document.getElementById('timerContainer').textContent = `${t('timerLabel')} ${formatTime(finisherState.time)}`;
+        if (finisherState.time % 30 === 0 && finisherState.moves.length) {
+          finisherState.moveIndex = (finisherState.moveIndex + 1) % finisherState.moves.length;
+          const m = finisherState.moves[finisherState.moveIndex];
+          document.getElementById('currentMove').textContent = `${m.name} x ${m.reps}`;
+        }
+      }
+    }, 1000);
+  }
+}
+
+function resetFinisherTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  finisherState.time = 7 * 60;
+  finisherState.moveIndex = 0;
+  const timerContainer = document.getElementById('timerContainer');
+  const moveEl = document.getElementById('currentMove');
+  timerContainer.textContent = '07:00';
+  moveEl.textContent = '';
 }
 
 // Helper to format seconds into MM:SS
@@ -520,7 +656,8 @@ function exportCSV() {
   rows.push(['Exercise', 'Focus', 'Sets', 'Reps', 'Weight', 'Notes'].join(','));
   // Gather data from table inputs
   const inputs = document.querySelectorAll('input[data-type="weight"]');
-  const plan = generateDailyPlan(appState.dayKey, appState.level);
+  const seed = appState.seedWeek + hashCode(appState.dayKey);
+  const plan = generateDailyPlan(appState.dayKey, appState.level, seed);
   // Build array of exercise objects in order: compound then accessories
   const exObjects = [plan.compound, ...plan.accessories];
   exObjects.forEach((ex, idx) => {

@@ -15,10 +15,10 @@ mobile‑ready.
 * **Daily plan generator** – Generates a warm‑up, main workout table
   (exercise, focus, sets, reps, starting weight and notes), a mandatory
   7‑minute finisher and a cooldown. Each day includes an affirmation.
+* **Weekly seed rotation** – Workout variations remain consistent within a week and refresh each new week.
 * **Level & language selection** – Supports Beginner/Intermediate levels and
   English/ Telugu copy. Selections persist across sessions.
-* **Finisher timer** – Integrated 7‑minute countdown with simple
-  movements (jumping jacks, swings, snatches and mountain climbers).
+* **Finisher library** – Select default, bodyweight or low‑impact finishers with a move‑aware 7‑minute timer.
 * **Checklist & logging** – Users can tick off hydration, sleep, warm‑up
   and pump, record their RPE and mood, and enter starting weights per
   exercise. Data can be exported as CSV for analysis.
