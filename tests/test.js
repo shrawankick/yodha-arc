@@ -11,7 +11,7 @@
   error detailing the failure.
 */
 
-const { generateDailyPlan } = require('../app');
+const { generateDailyPlan, FINISHERS } = require('../app');
 
 function assert(condition, message) {
   if (!condition) {
@@ -41,6 +41,19 @@ function runTests() {
     errorThrown = true;
   }
   assert(errorThrown, 'Unknown day should throw an error');
+
+  // Seeded plan determinism
+  const seed1 = 12345;
+  const seed2 = 54321;
+  const plan1a = generateDailyPlan('FoundationA', 'Beginner', seed1);
+  const plan1b = generateDailyPlan('FoundationA', 'Beginner', seed1);
+  const plan2 = generateDailyPlan('FoundationA', 'Beginner', seed2);
+  assert(JSON.stringify(plan1a) === JSON.stringify(plan1b), 'Identical seeds should yield identical plans');
+  assert(JSON.stringify(plan1a) !== JSON.stringify(plan2), 'Different seeds should yield different plans');
+
+  // Finisher order
+  const defaultMoves = FINISHERS.default.map((m) => m.name);
+  assert(defaultMoves[0] === 'Jumping Jacks', 'First default finisher move should be Jumping Jacks');
   console.log('All tests passed.');
 }
 

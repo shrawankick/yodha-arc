@@ -139,3 +139,14 @@ footer {
   font-size: 0.75rem;
   color: #6b7280;
 }
+
+/* Finisher list and timer */
+#finisherSection ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+#timerContainer {
+  font-size: 2rem;
+  text-align: center;
+}
