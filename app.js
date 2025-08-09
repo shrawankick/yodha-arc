@@ -48,6 +48,11 @@ const translations = {
     languageEnglish: 'English',
     languageTelugu: 'Telugu',
     selectDay: 'Training Day',
+    changeStyle: 'Change Style',
+    styleHome: 'Home Workout',
+    styleGym: 'Gym Workout',
+    styleCardio: 'Cardio',
+    styleRecovery: 'Active Recovery',
     startFinisher: 'Start Finisher (7:00)',
     finisherRunning: 'Finisher running…',
     pause: 'Pause',
@@ -85,6 +90,11 @@ const translations = {
     languageEnglish: 'ఆంగ్లం',
     languageTelugu: 'తెలుగు',
     selectDay: 'తరబడి రోజు',
+    changeStyle: 'శైలి మార్చండి',
+    styleHome: 'ఇంటి వ్యాయామం',
+    styleGym: 'జిమ్ వ్యాయామం',
+    styleCardio: 'కార్డియో',
+    styleRecovery: 'యాక్టివ్ రికవరీ',
     startFinisher: 'ఫినిషర్ ప్రారంభించు (7:00)',
     finisherRunning: 'ఫినిషర్ నడుస్తోంది…',
     pause: 'పాజ్',
@@ -174,6 +184,20 @@ function t(key) {
 
 // ----------------------------- Application State -----------------------------
 
+function save(key, val) {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch (e) {}
+}
+
+function load(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key));
+  } catch (e) {
+    return null;
+  }
+}
+
 /*
   A simple object to hold state across renders. It is persisted to
   ``localStorage`` so that when the user refreshes or returns to the site
@@ -187,7 +211,8 @@ const appState = {
   dayKey: 'FoundationA',
   finisherType: 'default',
   seedWeek: computeSeedWeek(),
-  logs: [] // Array of logged workouts
+  logs: [], // Array of logged workouts
+  workoutStyle: load('workoutStyle') || null // 'home' | 'gym' | 'cardio' | 'recovery'
 };
 
 // Persist ``appState`` to ``localStorage``. JSON.stringify is used to
@@ -318,6 +343,94 @@ const affirmations = [
   'Consistency is the superpower.'
 ];
 
+function buildCardioTemplate() {
+  return [
+    {
+      exercise: 'Cardio (Bike/Row/Tread)',
+      focus: 'Engine',
+      sets: 1,
+      repsRange: '25–40 min',
+      weight: '',
+      notes: 'RPE 6–7 steady OR 6x(2 min hard / 1 min easy)'
+    },
+    {
+      exercise: 'Carry (Farmer/Suitcase)',
+      focus: 'Core/Grip',
+      sets: 3,
+      repsRange: '20–40 m',
+      weight: '',
+      notes: 'Upright posture, nasal breathing'
+    }
+  ];
+}
+
+function buildRecoveryTemplate() {
+  return [
+    {
+      exercise: 'Mobility Flow',
+      focus: 'Hips/T-Spine',
+      sets: 1,
+      repsRange: '8–10 min',
+      weight: '',
+      notes: '90/90, Couch stretch, Cat-Cow, Thread the Needle'
+    },
+    {
+      exercise: 'Walk or Cycle Easy',
+      focus: 'Zone 2',
+      sets: 1,
+      repsRange: '15–20 min',
+      weight: '',
+      notes: 'RPE 3–4; nasal breathing'
+    },
+    {
+      exercise: 'Deadbug / Pallof',
+      focus: 'Core control',
+      sets: 3,
+      repsRange: '10–12',
+      weight: '',
+      notes: 'Slow, controlled'
+    }
+  ];
+}
+
+function adaptForHome(plan) {
+  const compoundMap = {
+    'Barbell Bench Press': 'Push-ups',
+    'Incline Bench Press': 'Elevated Push-ups',
+    'Deadlift': 'DB Romanian Deadlift',
+    'Romanian Deadlift': 'DB Romanian Deadlift',
+    'Back Squat': 'Goblet Squat',
+    'Front Squat': 'Goblet Squat',
+    'Leg Press': 'Reverse Lunges',
+    'Hack Squat': 'Reverse Lunges',
+    'Pendlay Row': 'One-arm Dumbbell Row',
+    'T‑Bar Row': 'One-arm Dumbbell Row'
+  };
+  if (compoundMap[plan.compound.exercise]) {
+    plan.compound.exercise = compoundMap[plan.compound.exercise];
+  }
+  const accessoryMap = {
+    'Cable Fly': 'Dumbbell Fly',
+    'Triceps Pushdown': 'Bench Dips',
+    'Pull‑ups / Lat Pulldown': 'Pull-ups',
+    'Face Pulls': 'Band Pull-aparts',
+    'Seated Cable Row': 'One-arm Dumbbell Row',
+    'Leg Press': 'Reverse Lunges',
+    'Romanian Deadlift': 'Single-leg RDL',
+    'Seated Leg Curl': 'Hamstring Slides',
+    'Cable Rope Pullover': 'Band Pullover',
+    'Close‑Grip Bench': 'Diamond Push-ups',
+    'Upright Row': 'Dumbbell Upright Row',
+    'Lat Pulldown (Different Grip)': 'Pull-ups',
+    'Skull Crushers': 'Overhead Triceps Extension'
+  };
+  plan.accessories = plan.accessories.map((acc) => {
+    const repl = accessoryMap[acc.exercise];
+    return repl ? { ...acc, exercise: repl } : acc;
+  });
+  return plan;
+}
+
 /*
   generateDailyPlan(dayKey: string, level: string): object
 
@@ -339,22 +452,40 @@ const affirmations = [
   ``weight`` is left as 'TBD' by default; users will fill their actual
   starting weight in the UI.
 */
-function generateDailyPlan(dayKey, level, seed = Date.now()) {
+function generateDailyPlan(dayKey, level, seed = Date.now(), workoutStyle = appState.workoutStyle) {
+  if (workoutStyle === 'cardio') {
+    const rng = seededRng(seed);
+    const ex = buildCardioTemplate();
+    const affirmation = affirmations[Math.floor(rng() * affirmations.length)];
+    return {
+      titleKey: 'Cardio',
+      compound: ex[0],
+      accessories: ex.slice(1),
+      affirmation
+    };
+  }
+  if (workoutStyle === 'recovery') {
+    const rng = seededRng(seed);
+    const ex = buildRecoveryTemplate();
+    const affirmation = affirmations[Math.floor(rng() * affirmations.length)];
+    return {
+      titleKey: 'Recovery',
+      compound: ex[0],
+      accessories: ex.slice(1),
+      affirmation
+    };
+  }
   const def = dayDefinitions[dayKey];
   if (!def) {
     throw new Error(`Unknown day key: ${dayKey}`);
   }
   const rng = seededRng(seed);
-  // Choose compound lift based on seed
   const compoundLift = def.compoundOptions[Math.floor(rng() * def.compoundOptions.length)];
-  // Determine number of accessories based on training level
   const accessoryCount = level === 'Intermediate' ? 5 : 4;
-  // Shuffle accessories deterministically
   const shuffledAccessories = def.accessories
     .map((item) => ({ ...item, sort: rng() }))
     .sort((a, b) => a.sort - b.sort)
     .slice(0, accessoryCount);
-  // Compose the compound exercise object
   const compound = {
     exercise: compoundLift,
     focus: def.titleKey.includes('Push') || def.titleKey.includes('Shoulders') ? 'Strength' : 'Strength',
@@ -363,7 +494,6 @@ function generateDailyPlan(dayKey, level, seed = Date.now()) {
     weight: 'TBD',
     notes: 'Controlled tempo, 2–3s negative, 1–2 min rest'
   };
-  // Compose accessory exercise objects
   const accessories = shuffledAccessories.map((acc) => {
     return {
       exercise: acc.exercise,
@@ -374,14 +504,17 @@ function generateDailyPlan(dayKey, level, seed = Date.now()) {
       notes: `${acc.notes}; rest 45–90s`
     };
   });
-  // Pick an affirmation based on seed
   const affirmation = affirmations[Math.floor(rng() * affirmations.length)];
-  return {
+  let plan = {
     titleKey: def.titleKey,
     compound,
     accessories,
     affirmation
   };
+  if (workoutStyle === 'home') {
+    plan = adaptForHome(plan);
+  }
+  return plan;
 }
 
 /*
@@ -420,7 +553,7 @@ function render() {
   }
   // Generate the plan for the current state using deterministic seed
   const seed = appState.seedWeek + hashCode(appState.dayKey);
-  const plan = generateDailyPlan(appState.dayKey, appState.level, seed);
+  const plan = generateDailyPlan(appState.dayKey, appState.level, seed, appState.workoutStyle);
   // Build options for the level select
   const levelOptions = [
     `<option value="Beginner" ${appState.level === 'Beginner' ? 'selected' : ''}>${t('levelBeginner')}</option>`,
@@ -519,8 +652,16 @@ function render() {
   // Render everything into the app container
   const app = document.getElementById('app');
   app.innerHTML = `
-    <header>${t('appTitle')}</header>
-    <main>
+    <header>
+      <div class="flex justify-between items-center">
+        <span>${t('appTitle')}</span>
+        <span class="text-sm">
+          <span id="selectedStyleTag"></span>
+          <button id="changeStyleBtn" class="link-btn" aria-label="${t('changeStyle')}" title="${t('changeStyle')}">${t('changeStyle')}</button>
+        </span>
+      </div>
+    </header>
+    <main class="container">
       <div class="flex justify-between items-center mb-2">
         <div>
           <label>${t('selectLevel')}</label>
@@ -554,6 +695,7 @@ function render() {
     </main>
     <footer>&copy; ${new Date().getFullYear()} Yodha Arc</footer>
   `;
+  renderHeaderStyleTag();
   // Attach event listeners
   document.getElementById('levelSelect').addEventListener('change', (e) => {
     appState.level = e.target.value;
@@ -587,6 +729,7 @@ function render() {
   document.getElementById('exportBtn').addEventListener('click', () => {
     exportCSV();
   });
+  document.getElementById('changeStyleBtn').addEventListener('click', showStyleScreen);
 }
 
 // ----------------------------- Finisher Timer --------------------------------
@@ -683,7 +826,7 @@ function exportCSV() {
   // Gather data from weight inputs (table or cards)
   const inputs = document.querySelectorAll('input[data-type="weight"]');
   const seed = appState.seedWeek + hashCode(appState.dayKey);
-  const plan = generateDailyPlan(appState.dayKey, appState.level, seed);
+  const plan = generateDailyPlan(appState.dayKey, appState.level, seed, appState.workoutStyle);
   // Build array of exercise objects in order: compound then accessories
   const exObjects = [plan.compound, ...plan.accessories];
   const weightMap = {};
@@ -724,25 +867,67 @@ function escapeForCSV(value) {
   return str;
 }
 
+function showStyleScreen() {
+  document.getElementById('styleScreen')?.classList.remove('hidden');
+  document.getElementById('app')?.classList.add('hidden');
+  window.scrollTo(0, 0);
+}
+
+function hideStyleScreen() {
+  document.getElementById('styleScreen')?.classList.add('hidden');
+  document.getElementById('app')?.classList.remove('hidden');
+}
+
+function renderHeaderStyleTag() {
+  const el = document.getElementById('selectedStyleTag');
+  if (!el) return;
+  const map = {
+    home: 'styleHome',
+    gym: 'styleGym',
+    cardio: 'styleCardio',
+    recovery: 'styleRecovery'
+  };
+  el.textContent = appState.workoutStyle ? t(map[appState.workoutStyle]) : '';
+}
+
 // ----------------------------- App Initialisation ----------------------------
 
 // Execute when the DOM is fully loaded.
 // ``window`` is only defined in browser contexts; guard against executing
 // browser‑specific logic when the module is imported in Node (e.g. for tests).
 if (typeof window !== 'undefined' && window.addEventListener) {
-  window.addEventListener('DOMContentLoaded', () => {
+  function init() {
     loadState();
-    render();
-    // Register the service worker if supported
+
+    document.querySelectorAll('.style-card').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-style');
+        appState.workoutStyle = val;
+        save('workoutStyle', val);
+        hideStyleScreen();
+        render();
+      });
+    });
+
+    if (!appState.workoutStyle) {
+      showStyleScreen();
+    } else {
+      hideStyleScreen();
+      render();
+    }
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/service-worker.js')
         .catch((error) => console.error('Service worker registration failed:', error));
     }
-  });
-  let resizeTimeout;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(render, 200);
-  });
+
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(render, 200);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
 }
