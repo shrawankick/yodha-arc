@@ -48,10 +48,11 @@ const translations = {
     languageEnglish: 'English',
     languageTelugu: 'Telugu',
     selectDay: 'Training Day',
-    startFinisher: 'Start 7‑min Finisher',
+    startFinisher: 'Start Finisher (7:00)',
     finisherRunning: 'Finisher running…',
     pause: 'Pause',
     reset: 'Reset',
+    estimateKg: 'Estimate kg',
     finisherDefault: 'Superman Finisher',
     finisherBodyweight: 'Bodyweight Only',
     finisherLowImpact: 'Low Impact',
@@ -84,10 +85,11 @@ const translations = {
     languageEnglish: 'ఆంగ్లం',
     languageTelugu: 'తెలుగు',
     selectDay: 'తరబడి రోజు',
-    startFinisher: '7 నిమిషాల ఫినిషర్ ప్రారంభించండి',
+    startFinisher: 'ఫినిషర్ ప్రారంభించు (7:00)',
     finisherRunning: 'ఫినిషర్ నడుస్తోంది…',
     pause: 'పాజ్',
     reset: 'రిసెట్',
+    estimateKg: 'కిలోలు అంచనా',
     finisherDefault: 'సూపర్‌మ్యాన్ ఫినిషర్',
     finisherBodyweight: 'బాడీవెయిట్ మాత్రమే',
     finisherLowImpact: 'లో ఇంపాక్ట్',
@@ -307,7 +309,13 @@ const affirmations = [
   'Your iron will defines your arc.',
   'Sweat is your armour, pain is your forge.',
   'Rise. Grind. Conquer.',
-  'Today’s effort shapes tomorrow’s hero.'
+  'Today’s effort shapes tomorrow’s hero.',
+  'Hydrate. Dominate.',
+  'Small plates. Big wins.',
+  'Move clean. Grow mean.',
+  'Respect the joints. Chase the pump.',
+  'Today’s work, tomorrow’s armor.',
+  'Consistency is the superpower.'
 ];
 
 /*
@@ -439,7 +447,7 @@ function render() {
     <td>${escape(plan.compound.focus)}</td>
     <td>${plan.compound.sets}</td>
     <td>${escape(plan.compound.repsRange)}</td>
-    <td><input type="text" data-type="weight" data-index="compound" placeholder="${escape(plan.compound.weight)}" /></td>
+    <td><input type="text" class="starting-weight-input" data-type="weight" data-index="compound" placeholder="${escape(plan.compound.weight)}" /></td>
     <td>${escape(plan.compound.notes)}</td>
   </tr>`);
   // Accessory rows
@@ -449,13 +457,30 @@ function render() {
       <td>${escape(acc.focus)}</td>
       <td>${acc.sets}</td>
       <td>${escape(acc.repsRange)}</td>
-      <td><input type="text" data-type="weight" data-index="${idx}" placeholder="${escape(acc.weight)}" /></td>
+      <td><input type="text" class="starting-weight-input" data-type="weight" data-index="${idx}" placeholder="${escape(acc.weight)}" /></td>
       <td>${escape(acc.notes)}</td>
     </tr>`);
   });
+
+  // Build cards for mobile view
+  const cards = [];
+  const pushCard = (ex, idx) => {
+    cards.push(`
+      <div class="exercise-card">
+        <h4>${escape(ex.exercise)}</h4>
+        <div class="exercise-meta">${escape(ex.focus)} – ${ex.sets} x ${escape(ex.repsRange)}</div>
+        <input type="text" class="starting-weight-input" data-type="weight" data-index="${idx}" placeholder="${escape(ex.weight)}" />
+        ${ex.notes ? `<div class="exercise-notes">${escape(ex.notes)}</div>` : ''}
+      </div>
+    `);
+  };
+  pushCard(plan.compound, 'compound');
+  plan.accessories.forEach((acc, idx) => pushCard(acc, idx));
+  const cardsHTML = cards.join('');
+
   // Compose the full HTML for the workout table
   const tableHTML = `
-    <table>
+    <table class="table">
       <thead>
         <tr>
           <th>Exercise</th>
@@ -512,7 +537,8 @@ function render() {
       </div>
       <p class="italic mb-2">${escape(plan.affirmation)}</p>
       <p>${t('warmup')}</p>
-      ${tableHTML}
+      <div id="planTable">${tableHTML}</div>
+      <div id="planCards" aria-live="polite">${cardsHTML}</div>
       <p>${t('cooldown')}</p>
       <div id="finisherSection">
         <select id="finisherSelect">${finisherOptions}</select>
@@ -654,15 +680,19 @@ function exportCSV() {
   const rows = [];
   // CSV header
   rows.push(['Exercise', 'Focus', 'Sets', 'Reps', 'Weight', 'Notes'].join(','));
-  // Gather data from table inputs
+  // Gather data from weight inputs (table or cards)
   const inputs = document.querySelectorAll('input[data-type="weight"]');
   const seed = appState.seedWeek + hashCode(appState.dayKey);
   const plan = generateDailyPlan(appState.dayKey, appState.level, seed);
   // Build array of exercise objects in order: compound then accessories
   const exObjects = [plan.compound, ...plan.accessories];
+  const weightMap = {};
+  inputs.forEach((input) => {
+    weightMap[input.dataset.index] = input.value || '';
+  });
   exObjects.forEach((ex, idx) => {
-    const input = inputs[idx];
-    const weight = input && input.value ? input.value : '';
+    const key = idx === 0 ? 'compound' : String(idx - 1);
+    const weight = weightMap[key] || '';
     rows.push([
       escapeForCSV(ex.exercise),
       escapeForCSV(ex.focus),
@@ -709,5 +739,10 @@ if (typeof window !== 'undefined' && window.addEventListener) {
         .register('/service-worker.js')
         .catch((error) => console.error('Service worker registration failed:', error));
     }
+  });
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(render, 200);
   });
 }
