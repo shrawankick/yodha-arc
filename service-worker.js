@@ -10,7 +10,9 @@
   for more information.
 */
 
-const CACHE_NAME = 'yodha-arc-cache-v1';
+// Bump the cache name whenever deployed assets change so that
+// clients receive the latest versions instead of stale files.
+const CACHE_NAME = 'yodha-arc-cache-v2';
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
