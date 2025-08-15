@@ -28,8 +28,11 @@ body {
 }
 .appbar__title { font-weight: 700; }
 .appbar__actions { display:flex; align-items:center; gap:8px; }
-.appbar select { height:32px; border-radius:6px; }
 .icon-btn { background: transparent; color:#fff; border:0; font-size: 20px; cursor:pointer; }
+
+.menu { position:absolute; top:56px; right:12px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px; box-shadow:0 2px 8px rgba(0,0,0,.1); display:flex; flex-direction:column; gap:8px; }
+.menu select { height:32px; border-radius:6px; }
+.menu .menu-item { width:100%; }
 
 /* Screens */
 .screen { padding: 16px 0; }

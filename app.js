@@ -11,7 +11,8 @@ const STATE = {
   style: load('style'),                 // 'gym' | 'home' | 'cardio' | 'recovery'
   lastWorkoutISO: load('lastWorkoutISO'),
   streak: load('streak') || 0,
-  lang: load('lang') || 'en'
+  lang: load('lang') || 'en',
+  format: load('format') || 'pull'      // 'pull' | 'push' | 'legs'
 };
 
 const STRINGS = {
@@ -48,7 +49,8 @@ const STRINGS = {
     start: 'Start',
     pause: 'Pause',
     reset: 'Reset',
-    markDone: 'Mark workout complete'
+    markDone: 'Mark workout complete',
+    settings: 'Settings'
   },
   te: {
     appTitle: 'యోధ ఆర్క్ — మీ ఉక్కును మలచుకోండి',
@@ -83,7 +85,8 @@ const STRINGS = {
     start: 'ప్రారంభించు',
     pause: 'విరమించు',
     reset: 'రిసెట్',
-    markDone: 'వ్యాయామాన్ని పూర్తిగా గుర్తించు'
+    markDone: 'వ్యాయామాన్ని పూర్తిగా గుర్తించు',
+    settings: 'సెట్టింగ్స్'
   }
 };
 
@@ -116,6 +119,15 @@ function initLang() {
     applyLang();
   });
   applyLang();
+}
+
+function initMenu() {
+  const menu = doc.getElementById('menu');
+  const btn = doc.getElementById('btnMenu');
+  if (!menu || !btn) return;
+  btn.addEventListener('click', () => {
+    menu.hidden = !menu.hidden;
+  });
 }
 
 // Screen switching
@@ -174,10 +186,24 @@ const GYM_TEMPLATES = {
     { name: 'Pull-ups / Lat Pulldown', meta: 'Back — 3 × 8–12', notes: 'Full stretch, strong contraction; rest 45–90s' },
     { name: 'Face Pulls', meta: 'Rear Delts — 3 × 15–20', notes: 'Squeeze shoulder blades; rest 45–90s' },
     { name: 'Barbell Curl', meta: 'Biceps — 3 × 8–12', notes: 'No swinging, 3s negative; rest 45–90s' },
+  ],
+  push: [
+    { name: 'Bench Press', meta: 'Chest — 4 × 6–8', notes: 'Controlled descent; rest 1–2 min' },
+    { name: 'Overhead Press', meta: 'Shoulders — 3 × 8–12', notes: 'Full lockout; rest 45–90s' },
+    { name: 'Incline DB Press', meta: 'Upper Chest — 3 × 8–12', notes: 'Squeeze at top; rest 45–90s' },
+    { name: 'Lateral Raises', meta: 'Shoulders — 3 × 15–20', notes: 'Light weight, high reps; rest 30–60s' },
+    { name: 'Triceps Pushdown', meta: 'Triceps — 3 × 8–12', notes: 'Elbows tucked; rest 45–90s' },
+  ],
+  legs: [
+    { name: 'Back Squat', meta: 'Strength — 4 × 3–6; back-off 6–10', notes: 'Depth below parallel; rest 2–3 min' },
+    { name: 'Romanian Deadlift', meta: 'Hamstrings — 3 × 8–12', notes: 'Hinge at hips; rest 1–2 min' },
+    { name: 'Leg Press', meta: 'Quads — 3 × 10–15', notes: 'Full range; rest 1–2 min' },
+    { name: 'Walking Lunges', meta: 'Legs — 3 × 12/leg', notes: 'Long steps; rest 1–2 min' },
+    { name: 'Calf Raises', meta: 'Calves — 4 × 12–20', notes: 'Pause at top; rest 45–60s' },
   ]
 };
 function renderGymPlan() {
-  const plan = GYM_TEMPLATES.pull;
+  const plan = GYM_TEMPLATES[STATE.format] || [];
   const root = document.getElementById('gymPlan'); root.innerHTML = '';
   plan.forEach(ex => {
     const sec = document.createElement('section');
@@ -191,7 +217,23 @@ function renderGymPlan() {
     root.appendChild(sec);
   });
 }
-function toGym(){ show('#screen-gym'); renderGymPlan(); document.getElementById('linkChangeStyle').onclick = toStyle; }
+function initFormat() {
+  const sel = document.getElementById('formatSelect');
+  if (!sel) return;
+  sel.value = STATE.format;
+  sel.addEventListener('change', () => {
+    STATE.format = sel.value;
+    save('format', STATE.format);
+    renderGymPlan();
+  });
+}
+function toGym(){
+  show('#screen-gym');
+  const sel = document.getElementById('formatSelect');
+  if (sel) sel.value = STATE.format;
+  renderGymPlan();
+  document.getElementById('linkChangeStyle').onclick = toStyle;
+}
 
 // Finisher timer (7:00 strict)
 let timerId = null, remaining = 7*60;
@@ -225,11 +267,24 @@ function boot(){
   initStyleSelect();
   initTimer();
   initCompletion();
+  initMenu();
   initLang();
+  initFormat();
   (!STATE.user.name) ? show('#screen-splash') : toWelcome();
 }
 if (doc) doc.addEventListener('DOMContentLoaded', boot);
 
-function generateDailyPlan(){ throw new Error('Not implemented'); }
+function generateDailyPlan(dayKey, level, seed = 1){
+  const valid = ['FoundationA','FoundationB','FoundationC','DetailA','DetailB','DetailC'];
+  if (!valid.includes(dayKey)) throw new Error('Unknown day');
+  const accessoriesCount = level === 'Intermediate' ? 5 : 4;
+  const compoundSets = level === 'Intermediate' ? 4 : 3;
+  let s = seed;
+  function rand(){ s = Math.sin(s) * 10000; return s - Math.floor(s); }
+  const accessories = Array.from({length: accessoriesCount}, (_, i) => ({
+    name: `Acc${i}-${Math.floor(rand()*1000)}`
+  }));
+  return { compound: { sets: compoundSets }, accessories };
+}
 const FINISHERS = { default: [{ name: 'Jumping Jacks' }] };
 if (typeof module !== 'undefined') { module.exports = { generateDailyPlan, FINISHERS }; }
