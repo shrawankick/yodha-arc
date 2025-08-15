@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="appbar">
-    <div class="appbar__title" data-i18n="appTitle">Yodha Arc — Forge Your Steel</div>
+    <div class="appbar__title">Yodha Arc — Forge Your Steel</div>
     <button id="btnSettings" class="icon-btn" aria-label="Settings" title="Settings">⚙️</button>
   </header>
 
@@ -16,148 +16,72 @@
     <!-- Screen 0: Splash / Login -->
     <section id="screen-splash" class="screen" data-screen="splash" hidden>
       <div class="logo">Yodha</div>
-      <h1 class="headline" data-i18n="splashWelcome">Welcome</h1>
-      <p class="sub" data-i18n="splashSub">Sign in or continue as guest to start training.</p>
+      <h1 class="headline">Welcome</h1>
+      <p class="sub">Sign in or continue as guest to start training.</p>
       <div class="stack">
-        <button id="btnGoogle" class="btn btn-primary" data-i18n="btnGoogle">Continue with Google (mock)</button>
-        <div class="or">or</div>
-        <div class="stack">
-          <input id="emailInput" class="input" type="email" placeholder="Email" autocomplete="email" />
-          <input id="passInput" class="input" type="password" placeholder="Password" />
-          <button id="btnEmailLogin" class="btn btn-secondary" data-i18n="btnEmailLogin">Login</button>
-        </div>
+        <button id="btnGoogle" class="btn btn-primary">Continue with Google (mock)</button>
         <div class="or">or</div>
         <div class="row">
           <input id="nameInput" class="input" placeholder="Your name" autocomplete="name" />
-          <button id="btnGuest" class="btn btn-secondary" data-i18n="btnGuest">Continue</button>
+          <button id="btnGuest" class="btn btn-secondary">Continue</button>
         </div>
       </div>
-      <p class="footnote" data-i18n="splashNote">MVP: Local-only. No server. Data stays on this device.</p>
+      <p class="footnote">MVP: Local-only. No server. Data stays on this device.</p>
     </section>
 
     <!-- Screen 1: Welcome / Dashboard -->
     <section id="screen-welcome" class="screen" data-screen="welcome" hidden>
       <h2 id="welcomeTitle" class="headline"></h2>
       <div class="card stats">
-        <div class="stat"><div class="stat__label" data-i18n="streakLabel">Streak</div><div id="streakVal" class="stat__value">0</div></div>
-        <div class="stat"><div class="stat__label" data-i18n="lastWorkoutLabel">Last workout</div><div id="lastWorkoutVal" class="stat__value">—</div></div>
-        <div class="stat"><div class="stat__label" data-i18n="timeLabel">Time (IST)</div><div id="timeVal" class="stat__value">—</div></div>
+        <div class="stat"><div class="stat__label">Streak</div><div id="streakVal" class="stat__value">0</div></div>
+        <div class="stat"><div class="stat__label">Last workout</div><div id="lastWorkoutVal" class="stat__value">—</div></div>
+        <div class="stat"><div class="stat__label">Time (IST)</div><div id="timeVal" class="stat__value">—</div></div>
       </div>
       <div class="stack mt">
-        <button id="btnChooseStyle" class="btn btn-primary" data-i18n="btnChooseStyle">Choose Workout Style</button>
-        <button id="btnContinueLast" class="btn btn-ghost"><span data-i18n="btnContinueLast">Continue last:</span> <span id="lastStyleChip">—</span></button>
+        <button id="btnChooseStyle" class="btn btn-primary">Choose Workout Style</button>
+        <button id="btnContinueLast" class="btn btn-ghost">Continue last: <span id="lastStyleChip">—</span></button>
       </div>
     </section>
 
     <!-- Screen 2: Style Selection -->
     <section id="screen-style" class="screen" data-screen="style" hidden>
-      <h2 class="headline" data-i18n="styleHeadline">How do you want to train today?</h2>
-      <p class="sub" data-i18n="styleSub">Pick one. You can change this anytime.</p>
+      <h2 class="headline">How do you want to train today?</h2>
+      <p class="sub">Pick one. You can change this anytime.</p>
       <div class="grid">
-        <button class="style-card" data-style="gym"><div class="style-title" data-i18n="styleGym">Gym Workout</div><div class="style-desc" data-i18n="styleGymDesc">Full equipment. Barbell/Machines OK.</div></button>
-        <button class="style-card" data-style="home"><div class="style-title" data-i18n="styleHome">Home Workout</div><div class="style-desc" data-i18n="styleHomeDesc">Bodyweight + DB/KB. Minimal gear.</div></button>
-        <button class="style-card" data-style="functional"><div class="style-title" data-i18n="styleFunctional">Functional</div><div class="style-desc" data-i18n="styleFunctionalDesc">Hybrid strength + cardio.</div></button>
-        <button class="style-card" data-style="mindfulness"><div class="style-title" data-i18n="styleMind">Mindfulness</div><div class="style-desc" data-i18n="styleMindDesc">Breathing & focus.</div></button>
+        <button class="style-card" data-style="gym"><div class="style-title">Gym Workout</div><div class="style-desc">Full equipment. Barbell/Machines OK.</div></button>
+        <button class="style-card" data-style="home"><div class="style-title">Home Workout</div><div class="style-desc">Bodyweight + DB/KB. Minimal gear.</div></button>
+        <button class="style-card" data-style="cardio"><div class="style-title">Cardio</div><div class="style-desc">25–40 min steady or intervals.</div></button>
+        <button class="style-card" data-style="recovery"><div class="style-title">Active Recovery</div><div class="style-desc">Mobility + easy movement.</div></button>
       </div>
-      <button id="btnStyleBack" class="btn btn-ghost mt" data-i18n="btnBack">Back</button>
+      <button id="btnStyleBack" class="btn btn-ghost mt">Back</button>
     </section>
 
-    <!-- Screen 3: Level Selection -->
-    <section id="screen-level" class="screen" data-screen="level" hidden>
-      <h2 class="headline" data-i18n="levelHeadline">Choose Level</h2>
-      <div class="stack">
-        <button class="btn btn-primary level-btn" data-level="beginner" data-i18n="levelBeginner">Beginner</button>
-        <button class="btn btn-primary level-btn" data-level="intermediate" data-i18n="levelIntermediate">Intermediate</button>
-        <button class="btn btn-primary level-btn" data-level="advanced" data-i18n="levelAdvanced">Advanced</button>
+    <!-- Screen 3: Gym Session -->
+    <section id="screen-gym" class="screen" data-screen="gym" hidden>
+      <div class="row between">
+        <h2 class="headline">Today’s Gym Session</h2>
+        <button class="link" id="linkChangeStyle">Change style</button>
       </div>
-      <button id="btnLevelBack" class="btn btn-ghost mt" data-i18n="btnBack">Back</button>
-    </section>
-
-    <!-- Screen 4: Week Plan -->
-    <section id="screen-week" class="screen" data-screen="week" hidden>
-      <h2 class="headline" data-i18n="weekHeadline">Select Week</h2>
-      <div class="grid">
-        <button class="btn btn-primary week-btn" data-week="1">Week 1</button>
-        <button class="btn btn-primary week-btn" data-week="2">Week 2</button>
-        <button class="btn btn-primary week-btn" data-week="3">Week 3</button>
-        <button class="btn btn-primary week-btn" data-week="4">Week 4</button>
+      <p class="sub">Warm-up (8–10 min): joint prep + ramp sets for the compound.</p>
+      <div id="gymPlan" class="stack"></div>
+      <h3 class="headline mt">Superman Finisher</h3>
+      <p class="sub">7-minute loop: 15 Jumping Jacks → 12 Swings → 10 DB Snatches (5/arm) → 20 Mountain Climbers.</p>
+      <div class="timer card">
+        <div id="timerDisplay" class="timer__display">07:00</div>
+        <div class="row">
+          <button id="btnStartTimer" class="btn btn-primary">Start</button>
+          <button id="btnPauseTimer" class="btn btn-secondary">Pause</button>
+          <button id="btnResetTimer" class="btn btn-ghost">Reset</button>
+        </div>
       </div>
-      <button id="btnWeekBack" class="btn btn-ghost mt" data-i18n="btnBack">Back</button>
-    </section>
-
-    <!-- Screen 5: Workout Type -->
-    <section id="screen-type" class="screen" data-screen="type" hidden>
-      <h2 class="headline" data-i18n="typeHeadline">Workout Type</h2>
-      <div class="grid">
-        <button class="btn btn-primary type-btn" data-type="push">Push</button>
-        <button class="btn btn-primary type-btn" data-type="pull">Pull</button>
-        <button class="btn btn-primary type-btn" data-type="legs">Legs</button>
-        <button class="btn btn-primary type-btn" data-type="full">Full Body</button>
-        <button class="btn btn-primary type-btn" data-type="core">Core</button>
-        <button class="btn btn-primary type-btn" data-type="cardio">Cardio</button>
-      </div>
-      <button id="btnTypeBack" class="btn btn-ghost mt" data-i18n="btnBack">Back</button>
-    </section>
-
-    <!-- Screen 6: Workout Summary -->
-    <section id="screen-summary" class="screen" data-screen="summary" hidden>
-      <h2 class="headline" data-i18n="summaryHeadline">Ready to Train?</h2>
-      <p class="sub"><span id="sumStyle"></span> · <span id="sumLevel"></span> · <span id="sumWeek"></span> · <span id="sumType"></span></p>
       <div class="stack mt">
-        <button id="btnStartWorkout" class="btn btn-primary" data-i18n="btnStartWorkout">Start Today's Workout</button>
-        <button id="btnSummaryBack" class="btn btn-ghost" data-i18n="btnBack">Back</button>
+        <button id="btnMarkDone" class="btn btn-success">Mark workout complete</button>
+        <button id="btnBackHome" class="btn btn-ghost">Back</button>
       </div>
-    </section>
-
-    <!-- Screen 7: Workout Exercise -->
-    <section id="screen-workout" class="screen" data-screen="workout" hidden>
-      <h2 id="workoutTitle" class="headline"></h2>
-      <div id="workoutMeta" class="sub"></div>
-      <div id="workoutVideo" class="video"></div>
-      <div class="stack mt">
-        <button id="btnNextExercise" class="btn btn-primary" data-i18n="btnNext">Next</button>
-        <button id="btnSkipExercise" class="btn btn-secondary" data-i18n="btnSkip">Skip</button>
-        <button id="btnChangeExercise" class="btn btn-ghost" data-i18n="btnChange">Change</button>
-      </div>
-    </section>
-
-    <!-- Screen 8: Rest Timer -->
-    <section id="screen-rest" class="screen" data-screen="rest" hidden>
-      <h2 class="headline" data-i18n="restHeadline">Rest</h2>
-      <div id="restTimer" class="timer__display">00:30</div>
-      <button id="btnRestSkip" class="btn btn-primary mt" data-i18n="btnSkipRest">Skip Rest</button>
-    </section>
-
-    <!-- Screen 9: Workout Complete -->
-    <section id="screen-done" class="screen" data-screen="done" hidden>
-      <h2 class="headline" data-i18n="doneHeadline">Workout Complete</h2>
-      <p class="sub" data-i18n="doneSub">Great job! Steel forged.</p>
-      <button id="btnDoneHome" class="btn btn-primary" data-i18n="btnBackHome">Back to Home</button>
     </section>
   </main>
-
-  <!-- Settings Modal -->
-  <div id="modalSettings" class="modal" hidden>
-    <div class="modal__content">
-      <h2 class="headline" data-i18n="settingsHeadline">Settings</h2>
-      <label class="row mt" data-i18n="settingsLangLabel">Language
-        <select id="selLanguage">
-          <option value="en">English</option>
-          <option value="hi">Hindi</option>
-        </select>
-      </label>
-      <label class="row mt" data-i18n="settingsThemeLabel">Theme
-        <select id="selTheme">
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
-      </label>
-      <button id="btnCloseSettings" class="btn btn-secondary mt" data-i18n="btnClose">Close</button>
-    </div>
-  </div>
 
   <footer class="footer">© 2025 Yodha Arc</footer>
   <script src="app.js"></script>
 </body>
 </html>
-
