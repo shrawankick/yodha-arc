@@ -30,8 +30,8 @@ mobile‑ready.
 ## MVP UI Flow
 
 1. **Welcome & Login** – Start as a guest or sign in with Google.
-2. **Workout Style Selection** – Choose Gym, Home, Cardio or Active Recovery.
-3. **Workout Type Selection** – Pick Push, Pull, Legs, Cardio or Recovery focus.
+2. **Workout Style Selection** – Choose Gym, Home or Mindfulness & Recovery.
+3. **Workout Type Selection** – Pick Push, Pull, Legs, Cardio or Active Recovery.
 4. **Level Selection** – Select Beginner or Beginner‑Intermediate.
 5. **Day Count Selection** – Specify how many days you plan to train.
 6. **Language Selection** – Choose your preferred language.
