@@ -8,20 +8,14 @@ tracks progress and provides nutrition guidance—all offline‑friendly and
 mobile‑ready.
 
 ## Features
-
 * **Workout builder** – Choose Gym, Home, or Mindfulness & Recovery styles and then pick Push, Pull, Legs, Cardio, or Active Recovery sessions.
 * **Daily plan generator** – Generates a warm‑up, main workout table (exercise, focus, sets, reps, starting weight and notes), a mandatory 7‑minute finisher and a cooldown. Each day includes an affirmation.
 * **Weekly seed rotation** – Workout variations remain consistent within a week and refresh each new week.
 * **Level & language selection** – Supports Beginner, Intermediate, and Advanced levels and English, Telugu, Hindi, and Tamil. Selections persist across sessions.
 * **Finisher library** – Select default, bodyweight or low‑impact finishers with a move‑aware 7‑minute timer.
-* **Checklist & logging** – Users can tick off hydration, sleep, warm‑up
-  and pump, record their RPE and mood, and enter starting weights per
-  exercise. Data can be exported as CSV for analysis.
-* **Offline support** – A service worker caches static assets so the app
-  functions offline once installed. It can be installed to a device
-  home screen like a native app.
-* **Testing** – A simple Node test harness validates the workout
-  generator logic.
+* **Checklist & logging** – Users can tick off hydration, sleep, warm‑up and pump, record their RPE and mood, and enter starting weights per exercise. Data can be exported as CSV for analysis.
+* **Offline support** – A service worker caches static assets so the app functions offline once installed. It can be installed to a device home screen like a native app.
+* **Testing** – A simple Node test harness validates the workout generator logic.
 
 ## MVP UI Flow
 

@@ -13,6 +13,8 @@
       <select id="languageSelect" aria-label="Language">
         <option value="en">English</option>
         <option value="te">తెలుగు</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ta">தமிழ்</option>
       </select>
       <button id="btnSettings" class="icon-btn" aria-label="Settings" title="Settings">⚙️</button>
     </div>
@@ -69,6 +71,14 @@
         <button class="link" id="linkChangeStyle" data-i18n="changeStyle">Change style</button>
       </div>
       <p class="sub" data-i18n="gymWarmup">Warm-up (8–10 min): joint prep + ramp sets for the compound.</p>
+      <div class="row mt">
+        <label for="formatSelect">Workout:</label>
+        <select id="formatSelect">
+          <option value="pull">Pull</option>
+          <option value="push">Push</option>
+          <option value="legs">Legs</option>
+        </select>
+      </div>
       <div id="gymPlan" class="stack"></div>
       <h3 class="headline mt" data-i18n="finisherTitle">Superman Finisher</h3>
       <p class="sub" data-i18n="finisherSub">7-minute loop: 15 Jumping Jacks → 12 Swings → 10 DB Snatches (5/arm) → 20 Mountain Climbers.</p>
