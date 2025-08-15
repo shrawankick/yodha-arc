@@ -7,71 +7,43 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="appbar">
-    <div class="appbar__title" data-i18n="appTitle">Yodha Arc — Forge Your Steel</div>
-    <div class="appbar__actions">
-      <button id="btnMenu" class="icon-btn" aria-label="Menu" title="Menu">☰</button>
-    </div>
-  </header>
+    <header class="appbar">
+      <div class="appbar__title" data-i18n="appTitle">Yodha Arc — Forge Your Steel</div>
+      <div class="appbar__actions">
+        <button id="btnMenu" class="icon-btn" aria-label="Menu" title="Menu">☰</button>
+      </div>
+    </header>
 
-  <div id="menuOverlay" class="menu-overlay"></div>
-  <nav id="menu" class="menu">
-    <select id="languageSelect" aria-label="Language">
-      <option value="en">English</option>
-      <option value="te">తెలుగు</option>
-    </select>
-    <button id="btnSettings" class="btn menu-item" data-i18n="settings">Settings</button>
-  </nav>
+    <div id="menuOverlay" class="menu-overlay"></div>
+    <nav id="menu" class="menu">
+      <button id="btnMenuClose" class="icon-btn menu__close" aria-label="Close menu">✕</button>
+      <select id="languageSelect" aria-label="Language">
+        <option value="en">English</option>
+        <option value="te">తెలుగు</option>
+      </select>
+      <button id="btnSettings" class="btn menu-item" data-i18n="settings">Settings</button>
+    </nav>
 
-  <main id="app" class="container">
-    <!-- Screen 0: Splash / Login -->
-    <section id="screen-splash" class="screen" data-screen="splash" hidden>
-      <div class="logo">Yodha</div>
-      <h1 class="headline" data-i18n="welcome">Welcome</h1>
-      <p class="sub" data-i18n="splashSub">Sign in or continue as guest to start training.</p>
-      <div class="stack">
-        <button id="btnGoogle" class="btn btn-primary" data-i18n="splashGoogle">Continue with Google (mock)</button>
-        <div class="or" data-i18n="splashOr">or</div>
-        <div class="row">
-          <input id="nameInput" class="input" placeholder="Your name" autocomplete="name" data-i18n-placeholder="splashNamePlaceholder" />
-          <button id="btnGuest" class="btn btn-secondary" data-i18n="splashContinue">Continue</button>
+    <main id="app" class="viewport">
+      <!-- Welcome -->
+      <section id="screen-welcome" class="screen" data-screen="welcome">
+        <h2 id="welcomeTitle" class="headline"></h2>
+        <div class="card stats">
+          <div class="stat"><div class="stat__label" data-i18n="streak">Streak</div><div id="streakVal" class="stat__value">0</div></div>
+          <div class="stat"><div class="stat__label" data-i18n="lastWorkout">Last workout</div><div id="lastWorkoutVal" class="stat__value">—</div></div>
+          <div class="stat"><div class="stat__label" data-i18n="time">Time (IST)</div><div id="timeVal" class="stat__value">—</div></div>
         </div>
-      </div>
-      <p class="footnote" data-i18n="splashFootnote">MVP: Local-only. No server. Data stays on this device.</p>
-    </section>
+        <div class="stack mt">
+          <button id="btnChooseStyle" class="btn btn-primary" data-i18n="chooseStyle">Choose Workout Style</button>
+          <button id="btnContinueLast" class="btn btn-ghost"><span data-i18n="continueLast">Continue last:</span> <span id="lastStyleChip">—</span></button>
+        </div>
+      </section>
 
-    <!-- Screen 1: Welcome / Dashboard -->
-    <section id="screen-welcome" class="screen" data-screen="welcome" hidden>
-      <h2 id="welcomeTitle" class="headline"></h2>
-      <div class="card stats">
-        <div class="stat"><div class="stat__label" data-i18n="streak">Streak</div><div id="streakVal" class="stat__value">0</div></div>
-        <div class="stat"><div class="stat__label" data-i18n="lastWorkout">Last workout</div><div id="lastWorkoutVal" class="stat__value">—</div></div>
-        <div class="stat"><div class="stat__label" data-i18n="time">Time (IST)</div><div id="timeVal" class="stat__value">—</div></div>
-      </div>
-      <div class="stack mt">
-        <button id="btnChooseStyle" class="btn btn-primary" data-i18n="chooseStyle">Choose Workout Style</button>
-        <button id="btnContinueLast" class="btn btn-ghost"><span data-i18n="continueLast">Continue last:</span> <span id="lastStyleChip">—</span></button>
-      </div>
-    </section>
-
-    <!-- Screen 2: Style Selection -->
-    <section id="screen-style" class="screen" data-screen="style" hidden>
-      <h2 class="headline" data-i18n="styleHeadline">How do you want to train today?</h2>
-      <p class="sub" data-i18n="styleSub">Pick one. You can change this anytime.</p>
-      <div class="grid">
-        <button class="style-card" data-style="gym"><div class="style-title" data-i18n="styleGymTitle">Gym Workout</div><div class="style-desc" data-i18n="styleGymDesc">Full equipment. Barbell/Machines OK.</div></button>
-        <button class="style-card" data-style="home"><div class="style-title" data-i18n="styleHomeTitle">Home Workout</div><div class="style-desc" data-i18n="styleHomeDesc">Bodyweight + DB/KB. Minimal gear.</div></button>
-        <button class="style-card" data-style="cardio"><div class="style-title" data-i18n="styleCardioTitle">Cardio</div><div class="style-desc" data-i18n="styleCardioDesc">25–40 min steady or intervals.</div></button>
-        <button class="style-card" data-style="recovery"><div class="style-title" data-i18n="styleRecoveryTitle">Active Recovery</div><div class="style-desc" data-i18n="styleRecoveryDesc">Mobility + easy movement.</div></button>
-      </div>
-      <button id="btnStyleBack" class="btn btn-ghost mt" data-i18n="back">Back</button>
-    </section>
-
-    <!-- Screen 3: Gym Session -->
-    <section id="screen-gym" class="screen" data-screen="gym" hidden>
-      <div class="row between">
-        <h2 class="headline" data-i18n="gymSessionTitle">Today’s Gym Session</h2>
-        <button class="link" id="linkChangeStyle" data-i18n="changeStyle">Change style</button>
+      <!-- Gym Session -->
+      <section id="screen-gym" class="screen" data-screen="gym" hidden>
+        <div class="row between">
+          <h2 class="headline" data-i18n="gymSessionTitle">Today’s Gym Session</h2>
+          <button class="link" id="linkChangeStyle" data-i18n="changeStyle">Change style</button>
       </div>
       <p class="sub" data-i18n="gymWarmup">Warm-up (8–10 min): joint prep + ramp sets for the compound.</p>
       <div class="row mt">
@@ -93,14 +65,32 @@
           <button id="btnResetTimer" class="btn btn-ghost" data-i18n="reset">Reset</button>
         </div>
       </div>
-      <div class="stack mt">
-        <button id="btnMarkDone" class="btn btn-success" data-i18n="markDone">Mark workout complete</button>
-        <button id="btnBackHome" class="btn btn-ghost" data-i18n="back">Back</button>
-      </div>
-    </section>
-  </main>
+        <div class="stack mt">
+          <button id="btnMarkDone" class="btn btn-success" data-i18n="markDone">Mark workout complete</button>
+          <button id="btnBackHome" class="btn btn-ghost" data-i18n="back">Back</button>
+        </div>
+      </section>
+    </main>
 
-  <footer class="footer">© 2025 Yodha Arc</footer>
-  <script src="app.js"></script>
-</body>
-</html>
+    <!-- Style selection modal -->
+    <div id="styleModal" class="style-modal" hidden>
+      <h2 class="headline" data-i18n="styleHeadline">How do you want to train today?</h2>
+      <p class="sub" data-i18n="styleSub">Pick one. You can change this anytime.</p>
+      <label for="levelSelect" class="mt">Level:</label>
+      <select id="levelSelect" class="mt">
+        <option value="Intermediate">Intermediate</option>
+        <option value="Advanced">Advanced</option>
+      </select>
+      <div class="grid mt">
+        <button class="style-card" data-style="gym"><div class="style-title" data-i18n="styleGymTitle">Gym Workout</div><div class="style-desc" data-i18n="styleGymDesc">Full equipment. Barbell/Machines OK.</div></button>
+        <button class="style-card" data-style="home"><div class="style-title" data-i18n="styleHomeTitle">Home Workout</div><div class="style-desc" data-i18n="styleHomeDesc">Bodyweight + DB/KB. Minimal gear.</div></button>
+        <button class="style-card" data-style="cardio"><div class="style-title" data-i18n="styleCardioTitle">Cardio</div><div class="style-desc" data-i18n="styleCardioDesc">25–40 min steady or intervals.</div></button>
+        <button class="style-card" data-style="recovery"><div class="style-title" data-i18n="styleRecoveryTitle">Active Recovery</div><div class="style-desc" data-i18n="styleRecoveryDesc">Mobility + easy movement.</div></button>
+      </div>
+      <button id="styleClose" class="btn btn-ghost mt" data-i18n="back">Back</button>
+    </div>
+
+    <footer class="footer">© 2025 Yodha Arc</footer>
+    <script src="app.js"></script>
+  </body>
+  </html>
