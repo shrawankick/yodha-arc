@@ -27,6 +27,8 @@ body {
   background: #0b3d91; color: #fff; border-bottom: 1px solid #0a357f;
 }
 .appbar__title { font-weight: 700; }
+.appbar__actions { display:flex; align-items:center; gap:8px; }
+.appbar select { height:32px; border-radius:6px; }
 .icon-btn { background: transparent; color:#fff; border:0; font-size: 20px; cursor:pointer; }
 
 /* Screens */

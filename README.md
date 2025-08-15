@@ -17,7 +17,8 @@ mobile‑ready.
   7‑minute finisher and a cooldown. Each day includes an affirmation.
 * **Weekly seed rotation** – Workout variations remain consistent within a week and refresh each new week.
 * **Level & language selection** – Supports Beginner/Intermediate levels and
-  English/ Telugu copy. Selections persist across sessions.
+  English/Telugu copy. A header dropdown lets users switch languages and the
+  selection persists across sessions.
 * **Finisher library** – Select default, bodyweight or low‑impact finishers with a move‑aware 7‑minute timer.
 * **Checklist & logging** – Users can tick off hydration, sleep, warm‑up
   and pump, record their RPE and mood, and enter starting weights per

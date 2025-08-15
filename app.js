@@ -1,6 +1,7 @@
 // Client-only state + navigation for MVP
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => Array.from(document.querySelectorAll(s));
+const doc = typeof document !== 'undefined' ? document : null;
+const $ = doc ? (s) => doc.querySelector(s) : () => null;
+const $$ = doc ? (s) => Array.from(doc.querySelectorAll(s)) : () => [];
 const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 const load = (k, d=null) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return d; } };
 const fmtTime = (d) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
@@ -9,8 +10,113 @@ const STATE = {
   user: load('user') || { name: null },
   style: load('style'),                 // 'gym' | 'home' | 'cardio' | 'recovery'
   lastWorkoutISO: load('lastWorkoutISO'),
-  streak: load('streak') || 0
+  streak: load('streak') || 0,
+  lang: load('lang') || 'en'
 };
+
+const STRINGS = {
+  en: {
+    appTitle: 'Yodha Arc — Forge Your Steel',
+    welcome: 'Welcome',
+    splashSub: 'Sign in or continue as guest to start training.',
+    splashGoogle: 'Continue with Google (mock)',
+    splashOr: 'or',
+    splashNamePlaceholder: 'Your name',
+    splashContinue: 'Continue',
+    splashFootnote: 'MVP: Local-only. No server. Data stays on this device.',
+    streak: 'Streak',
+    lastWorkout: 'Last workout',
+    time: 'Time (IST)',
+    chooseStyle: 'Choose Workout Style',
+    continueLast: 'Continue last:',
+    styleHeadline: 'How do you want to train today?',
+    styleSub: 'Pick one. You can change this anytime.',
+    styleGymTitle: 'Gym Workout',
+    styleGymDesc: 'Full equipment. Barbell/Machines OK.',
+    styleHomeTitle: 'Home Workout',
+    styleHomeDesc: 'Bodyweight + DB/KB. Minimal gear.',
+    styleCardioTitle: 'Cardio',
+    styleCardioDesc: '25–40 min steady or intervals.',
+    styleRecoveryTitle: 'Active Recovery',
+    styleRecoveryDesc: 'Mobility + easy movement.',
+    back: 'Back',
+    gymSessionTitle: 'Today’s Gym Session',
+    changeStyle: 'Change style',
+    gymWarmup: 'Warm-up (8–10 min): joint prep + ramp sets for the compound.',
+    finisherTitle: 'Superman Finisher',
+    finisherSub: '7-minute loop: 15 Jumping Jacks → 12 Swings → 10 DB Snatches (5/arm) → 20 Mountain Climbers.',
+    start: 'Start',
+    pause: 'Pause',
+    reset: 'Reset',
+    markDone: 'Mark workout complete'
+  },
+  te: {
+    appTitle: 'యోధ ఆర్క్ — మీ ఉక్కును మలచుకోండి',
+    welcome: 'స్వాగతం',
+    splashSub: 'ట్రైనింగ్ ప్రారంభించడానికి సైన్ ఇన్ చేయండి లేదా గెస్ట్‌గా కొనసాగండి.',
+    splashGoogle: 'గూగుల్‌తో కొనసాగండి (మాక్)',
+    splashOr: 'లేదా',
+    splashNamePlaceholder: 'మీ పేరు',
+    splashContinue: 'కొనసాగించు',
+    splashFootnote: 'MVP: స్థానిక-మాత్రం. సర్వర్ లేదు. డేటా ఈ పరికరంలోనే ఉంటుంది.',
+    streak: 'సీరిస్',
+    lastWorkout: 'చివరి వ్యాయామం',
+    time: 'సమయం (IST)',
+    chooseStyle: 'వ్యాయామ శైలి ఎంచుకోండి',
+    continueLast: 'గతదాన్ని కొనసాగించు:',
+    styleHeadline: 'ఈరోజు మీరు ఎలా వ్యాయామం చేయాలనుకుంటున్నారు?',
+    styleSub: 'ఒకదాన్ని ఎంచుకోండి. మీరు ఇది ఎప్పుడైనా మార్చవచ్చు.',
+    styleGymTitle: 'జిమ్ వ్యాయామం',
+    styleGymDesc: 'పూర్తి సామగ్రి. బార్‌బెల్/మెషీన్లు సరే.',
+    styleHomeTitle: 'ఇంటి వ్యాయామం',
+    styleHomeDesc: 'బాడీవెయిట్ + డంబెల్/కెటిల్‌బెల్. కనిష్ట సామగ్రి.',
+    styleCardioTitle: 'కార్డియో',
+    styleCardioDesc: '25–40 నిమిషాల మోడరేట్ లేదా ఇంటర్వెల్స్.',
+    styleRecoveryTitle: 'సక్రియ పునరుద్ధరణ',
+    styleRecoveryDesc: 'సంచలన మరియు సులభ కదలిక.',
+    back: 'తిరిగి',
+    gymSessionTitle: 'ఈరోజు జిమ్ సెషన్',
+    changeStyle: 'శైలిని మార్చు',
+    gymWarmup: 'వార్మ్-అప్ (8–10 నిమి): కీళ్ళ సిద్ధత + సంయుక్త కోసం ర్యాంప్ సెట్లు.',
+    finisherTitle: 'సూపర్‌మాన్ ముగింపు',
+    finisherSub: '7-నిమిషాల లూప్: 15 జంపింగ్ జాక్స్ → 12 స్వింగ్స్ → 10 డీబీ స్నాచెస్ (5/చేతి) → 20 మౌంటైన్ క్లైంబర్స్.',
+    start: 'ప్రారంభించు',
+    pause: 'విరమించు',
+    reset: 'రిసెట్',
+    markDone: 'వ్యాయామాన్ని పూర్తిగా గుర్తించు'
+  }
+};
+
+function applyLang() {
+  if (!doc) return;
+  const lang = STATE.lang;
+  doc.documentElement.lang = lang;
+  $$('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (STRINGS[lang][key]) el.textContent = STRINGS[lang][key];
+  });
+  $$('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (STRINGS[lang][key]) el.setAttribute('placeholder', STRINGS[lang][key]);
+  });
+  const wt = $('#welcomeTitle');
+  if (wt && STATE.user.name) {
+    wt.textContent = `${STRINGS[lang].welcome}, ${STATE.user.name}!`;
+  }
+}
+
+function initLang() {
+  if (!doc) return;
+  const sel = doc.getElementById('languageSelect');
+  if (!sel) return;
+  sel.value = STATE.lang;
+  sel.addEventListener('change', () => {
+    STATE.lang = sel.value;
+    save('lang', STATE.lang);
+    applyLang();
+  });
+  applyLang();
+}
 
 // Screen switching
 function show(id) {
@@ -34,7 +140,7 @@ function mockLogin(name) {
 // Welcome
 function toWelcome() {
   show('#screen-welcome');
-  document.getElementById('welcomeTitle').textContent = `Welcome, ${STATE.user.name}!`;
+  document.getElementById('welcomeTitle').textContent = `${STRINGS[STATE.lang].welcome}, ${STATE.user.name}!`;
   document.getElementById('timeVal').textContent = fmtTime(new Date());
 
   const last = STATE.lastWorkoutISO ? STATE.lastWorkoutISO.slice(0,10) : null;
@@ -114,5 +220,16 @@ function initCompletion(){
 }
 
 // Boot
-function boot(){ initSplash(); initStyleSelect(); initTimer(); initCompletion(); (!STATE.user.name) ? show('#screen-splash') : toWelcome(); }
-document.addEventListener('DOMContentLoaded', boot);
+function boot(){
+  initSplash();
+  initStyleSelect();
+  initTimer();
+  initCompletion();
+  initLang();
+  (!STATE.user.name) ? show('#screen-splash') : toWelcome();
+}
+if (doc) doc.addEventListener('DOMContentLoaded', boot);
+
+function generateDailyPlan(){ throw new Error('Not implemented'); }
+const FINISHERS = { default: [{ name: 'Jumping Jacks' }] };
+if (typeof module !== 'undefined') { module.exports = { generateDailyPlan, FINISHERS }; }
