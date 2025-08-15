@@ -6,7 +6,7 @@ const storage = typeof localStorage !== 'undefined'
 const $ = doc ? (s) => doc.querySelector(s) : () => null;
 const $$ = doc ? (s) => Array.from(doc.querySelectorAll(s)) : () => [];
 const save = (k, v) => storage.setItem(k, JSON.stringify(v));
-const load = (k, d=null) => {
+const load = (k, d = null) => {
   try { return JSON.parse(storage.getItem(k)); }
   catch { return d; }
 };
