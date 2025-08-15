@@ -9,14 +9,10 @@ mobile‑ready.
 
 ## Features
 
-* **Flexible day‑based sessions** – Users choose how many days they plan to
-  train rather than following a fixed weekly schedule.
-* **Daily plan generator** – Generates a warm‑up, main workout table
-  (exercise, focus, sets, reps, starting weight and notes), a mandatory
-  7‑minute finisher and a cooldown. Each day includes an affirmation.
-* **Level & language selection** – Supports Beginner and
-  Beginner‑Intermediate levels and English/ Telugu copy. Selections persist
-  across sessions.
+* **Workout builder** – Choose Gym, Home, or Mindfulness & Recovery styles and then pick Push, Pull, Legs, Cardio, or Active Recovery sessions.
+* **Daily plan generator** – Generates a warm‑up, main workout table (exercise, focus, sets, reps, starting weight and notes), a mandatory 7‑minute finisher and a cooldown. Each day includes an affirmation.
+* **Weekly seed rotation** – Workout variations remain consistent within a week and refresh each new week.
+* **Level & language selection** – Supports Beginner, Intermediate, and Advanced levels and English, Telugu, Hindi, and Tamil. Selections persist across sessions.
 * **Finisher library** – Select default, bodyweight or low‑impact finishers with a move‑aware 7‑minute timer.
 * **Checklist & logging** – Users can tick off hydration, sleep, warm‑up
   and pump, record their RPE and mood, and enter starting weights per
@@ -32,9 +28,9 @@ mobile‑ready.
 1. **Welcome & Login** – Start as a guest or sign in with Google.
 2. **Workout Style Selection** – Choose Gym, Home or Mindfulness & Recovery.
 3. **Workout Type Selection** – Pick Push, Pull, Legs, Cardio or Active Recovery.
-4. **Level Selection** – Select Beginner or Beginner‑Intermediate.
-5. **Day Count Selection** – Specify how many days you plan to train.
-6. **Language Selection** – Choose your preferred language.
+4. **Level Selection** – Select Beginner, Intermediate or Advanced.
+5. **Weekly Plan Selection** – Choose Week 1 through Week 4.
+6. **Language Selection** – Choose English, Telugu, Hindi or Tamil.
 7. **Workout Execution** – View today's plan, finishers and nutrition logging.
 
 ## Repository Structure
