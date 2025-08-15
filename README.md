@@ -12,6 +12,8 @@ mobile‑ready.
 * **6‑day Push–Pull–Legs Hybrid** – A structured weekly program with
   compound and accessory movements. The plan automatically rotates
   exercises to avoid overuse.
+* **Selectable gym formats** – Choose between Push, Pull or Leg templates
+  directly in the session.
 * **Daily plan generator** – Generates a warm‑up, main workout table
   (exercise, focus, sets, reps, starting weight and notes), a mandatory
   7‑minute finisher and a cooldown. Each day includes an affirmation.
@@ -23,6 +25,8 @@ mobile‑ready.
 * **Checklist & logging** – Users can tick off hydration, sleep, warm‑up
   and pump, record their RPE and mood, and enter starting weights per
   exercise. Data can be exported as CSV for analysis.
+* **Hamburger menu** – Settings and language selection are tucked away to
+  preserve the app’s branding.
 * **Offline support** – A service worker caches static assets so the app
   functions offline once installed. It can be installed to a device
   home screen like a native app.
