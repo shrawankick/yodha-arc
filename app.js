@@ -124,10 +124,14 @@ function initLang() {
 function initMenu() {
   const menu = doc.getElementById('menu');
   const btn = doc.getElementById('btnMenu');
-  if (!menu || !btn) return;
-  btn.addEventListener('click', () => {
-    menu.hidden = !menu.hidden;
-  });
+  const overlay = doc.getElementById('menuOverlay');
+  if (!menu || !btn || !overlay) return;
+  const toggle = () => {
+    const open = menu.classList.toggle('open');
+    overlay.classList.toggle('show', open);
+  };
+  btn.addEventListener('click', toggle);
+  overlay.addEventListener('click', toggle);
 }
 
 // Screen switching
