@@ -7,12 +7,13 @@ const load = (k, d=null) => { try { return JSON.parse(localStorage.getItem(k)); 
 const fmtTime = (d) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
 const STATE = {
-  user: load('user') || { name: null },
+  user: load('user') || { name: 'Warrior' },
   style: load('style'),                 // 'gym' | 'home' | 'cardio' | 'recovery'
   lastWorkoutISO: load('lastWorkoutISO'),
   streak: load('streak') || 0,
   lang: load('lang') || 'en',
-  format: load('format') || 'pull'      // 'pull' | 'push' | 'legs'
+  format: load('format') || 'pull',     // 'pull' | 'push' | 'legs'
+  level: load('level') || 'Intermediate'
 };
 
 const STRINGS = {
@@ -125,62 +126,65 @@ function initMenu() {
   const menu = doc.getElementById('menu');
   const btn = doc.getElementById('btnMenu');
   const overlay = doc.getElementById('menuOverlay');
+  const close = doc.getElementById('btnMenuClose');
   if (!menu || !btn || !overlay) return;
-  const toggle = () => {
-    const open = menu.classList.toggle('open');
-    overlay.classList.toggle('show', open);
-  };
-  btn.addEventListener('click', toggle);
-  overlay.addEventListener('click', toggle);
+  const open = () => { menu.classList.add('open'); overlay.classList.add('show'); };
+  const hide = () => { menu.classList.remove('open'); overlay.classList.remove('show'); };
+  btn.addEventListener('click', open);
+  overlay.addEventListener('click', hide);
+  if (close) close.addEventListener('click', hide);
 }
 
 // Screen switching
-function show(id) {
+function activate(id) {
   $$('.screen').forEach(s => s.hidden = true);
-  $(id).hidden = false;
+  const el = $(id);
+  if (el) el.hidden = false;
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 // Splash
-function initSplash() {
-  document.getElementById('btnGoogle').addEventListener('click', () => mockLogin('Google User'));
-  document.getElementById('btnGuest').addEventListener('click', () => {
-    const name = document.getElementById('nameInput').value.trim() || 'Warrior';
-    mockLogin(name);
-  });
-}
-function mockLogin(name) {
-  STATE.user.name = name; save('user', STATE.user); toWelcome();
-}
+// Removed splash/login for simplified router
 
 // Welcome
 function toWelcome() {
-  show('#screen-welcome');
+  activate('#screen-welcome');
   document.getElementById('welcomeTitle').textContent = `${STRINGS[STATE.lang].welcome}, ${STATE.user.name}!`;
   document.getElementById('timeVal').textContent = fmtTime(new Date());
 
   const last = STATE.lastWorkoutISO ? STATE.lastWorkoutISO.slice(0,10) : null;
   document.getElementById('streakVal').textContent = STATE.streak;
   document.getElementById('lastWorkoutVal').textContent = last ? new Date(STATE.lastWorkoutISO).toDateString() : '—';
-  document.getElementById('lastStyleChip').textContent = STATE.style ? STATE.style : '—';
+  document.getElementById('lastStyleChip').textContent = STATE.style ? `${STATE.style} (${STATE.level})` : '—';
 
-  document.getElementById('btnChooseStyle').onclick = toStyle;
-  document.getElementById('btnContinueLast').onclick = () => (STATE.style === 'gym' ? toGym() : toStyle());
+  document.getElementById('btnChooseStyle').onclick = () => showStyleModal();
+  document.getElementById('btnContinueLast').onclick = () => {
+    if (!STATE.style) return showStyleModal();
+    if (STATE.style === 'gym') toGym();
+    else { alert(`${STATE.style} coming soon. Routing to Gym for MVP.`); toGym(); }
+  };
 }
 
-// Style select
-function toStyle(){ show('#screen-style'); }
-function initStyleSelect() {
-  $$('#screen-style .style-card').forEach(btn => {
+// Style modal
+function initStyleModal(){
+  const modal = $('#styleModal');
+  if (!modal) return;
+  const levelSel = $('#levelSelect');
+  levelSel.value = STATE.level;
+  levelSel.addEventListener('change', () => { STATE.level = levelSel.value; save('level', STATE.level); });
+  $('#styleClose').onclick = () => modal.hidden = true;
+  $$('#styleModal .style-card').forEach(btn => {
     btn.addEventListener('click', () => {
       const style = btn.getAttribute('data-style');
       STATE.style = style; save('style', style);
+      STATE.level = levelSel.value; save('level', STATE.level);
+      modal.hidden = true;
       if (style === 'gym') toGym();
       else { alert(`${style} coming soon. Routing to Gym for MVP.`); toGym(); }
     });
   });
-  document.getElementById('btnStyleBack').onclick = toWelcome;
 }
+function showStyleModal(){ const m = $('#styleModal'); if (m) m.hidden = false; }
 
 // Gym plan (MVP)
 const GYM_TEMPLATES = {
@@ -232,11 +236,11 @@ function initFormat() {
   });
 }
 function toGym(){
-  show('#screen-gym');
+  activate('#screen-gym');
   const sel = document.getElementById('formatSelect');
   if (sel) sel.value = STATE.format;
   renderGymPlan();
-  document.getElementById('linkChangeStyle').onclick = toStyle;
+  document.getElementById('linkChangeStyle').onclick = showStyleModal;
 }
 
 // Finisher timer (7:00 strict)
@@ -267,14 +271,13 @@ function initCompletion(){
 
 // Boot
 function boot(){
-  initSplash();
-  initStyleSelect();
+  initStyleModal();
   initTimer();
   initCompletion();
   initMenu();
   initLang();
   initFormat();
-  (!STATE.user.name) ? show('#screen-splash') : toWelcome();
+  toWelcome();
 }
 if (doc) doc.addEventListener('DOMContentLoaded', boot);
 
