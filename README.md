@@ -8,6 +8,7 @@ tracks progress and provides nutrition guidance—all offline‑friendly and
 mobile‑ready.
 
 ## Features
+
 * **Workout builder** – Choose Gym, Home, or Mindfulness & Recovery styles and then pick Push, Pull, Legs, Cardio, or Active Recovery sessions.
 * **Daily plan generator** – Generates a warm‑up, main workout table (exercise, focus, sets, reps, starting weight and notes), a mandatory 7‑minute finisher and a cooldown. Each day includes an affirmation.
 * **Weekly seed rotation** – Workout variations remain consistent within a week and refresh each new week.
