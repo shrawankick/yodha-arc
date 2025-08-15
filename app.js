@@ -1,9 +1,15 @@
 // Client-only state + navigation for MVP
 const doc = typeof document !== 'undefined' ? document : null;
+const storage = typeof localStorage !== 'undefined'
+  ? localStorage
+  : { getItem: () => null, setItem: () => {} };
 const $ = doc ? (s) => doc.querySelector(s) : () => null;
 const $$ = doc ? (s) => Array.from(doc.querySelectorAll(s)) : () => [];
-const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-const load = (k, d=null) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return d; } };
+const save = (k, v) => storage.setItem(k, JSON.stringify(v));
+const load = (k, d=null) => {
+  try { return JSON.parse(storage.getItem(k)); }
+  catch { return d; }
+};
 const fmtTime = (d) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
 const STATE = {
