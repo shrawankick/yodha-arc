@@ -1,60 +1,76 @@
 /*
-  Minimal test harness for the Yodha Arc generator
+  Minimal assertions for the adaptive Yodha Arc planner.
 
-  This script can be executed with ``node tests/test.js``. It imports the
-  ``generateDailyPlan`` function from the parent directory and runs a
-  handful of assertions to verify that core logic behaves as expected.
-
-  Since third‑party testing libraries are unavailable in this environment
-  (e.g. Jest or Mocha), a simple homemade assert function is used. When
-  tests pass, the script outputs a success message; otherwise it throws an
-  error detailing the failure.
+  Run with: `node tests/test.js`
 */
 
-const { generateDailyPlan, FINISHERS } = require('../app');
+const assert = (cond, msg) => { if (!cond) throw new Error(msg); };
 
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message);
+const { generateWorkoutPlan, HIIT_LIBRARY, CALISTHENICS_MOVES } = require('../app');
+
+function getPlan(dayOffset = 0, overrides = {}) {
+  const date = new Date('2025-01-01T00:00:00Z');
+  date.setUTCDate(date.getUTCDate() + dayOffset);
+  return generateWorkoutPlan(date, overrides);
+}
+
+function testDurations() {
+  for (let i = 0; i < 14; i += 1) {
+    const plan = getPlan(i, { style: 'gym', level: 'Intermediate', goal: 'strength', equipment: 'freeweight' });
+    assert(plan.estimatedMinutes <= 70, `Gym plan day ${i} exceeds 70 minutes`);
+    assert(plan.hiit.length === 7, 'HIIT finisher must be 7 moves');
   }
 }
 
-function runTests() {
-  // Test each day for beginner
-  const dayKeys = ['FoundationA', 'FoundationB', 'FoundationC', 'DetailA', 'DetailB', 'DetailC'];
-  dayKeys.forEach((key) => {
-    const plan = generateDailyPlan(key, 'Beginner');
-    assert(plan.accessories.length === 4, `${key} beginner should have 4 accessories`);
-    assert(plan.compound.sets === 3, `${key} beginner compound should have 3 sets`);
-  });
-  // Test each day for intermediate
-  dayKeys.forEach((key) => {
-    const plan = generateDailyPlan(key, 'Intermediate');
-    assert(plan.accessories.length === 5, `${key} intermediate should have 5 accessories`);
-    assert(plan.compound.sets === 4, `${key} intermediate compound should have 4 sets`);
-  });
-  // Unknown day key should throw
-  let errorThrown = false;
-  try {
-    generateDailyPlan('UnknownDay', 'Beginner');
-  } catch (err) {
-    errorThrown = true;
-  }
-  assert(errorThrown, 'Unknown day should throw an error');
+function testLevelScaling() {
+  const beginner = getPlan(0, { style: 'gym', level: 'Beginner' });
+  const advanced = getPlan(0, { style: 'gym', level: 'Advanced' });
+  const beginnerSets = beginner.blocks.flatMap((b) => b.exercises).reduce((acc, ex) => acc + (ex.sets || 0), 0);
+  const advancedSets = advanced.blocks.flatMap((b) => b.exercises).reduce((acc, ex) => acc + (ex.sets || 0), 0);
+  assert(advancedSets > beginnerSets, 'Advanced should have more total sets than Beginner');
+}
 
-  // Seeded plan determinism
-  const seed1 = 12345;
-  const seed2 = 54321;
-  const plan1a = generateDailyPlan('FoundationA', 'Beginner', seed1);
-  const plan1b = generateDailyPlan('FoundationA', 'Beginner', seed1);
-  const plan2 = generateDailyPlan('FoundationA', 'Beginner', seed2);
-  assert(JSON.stringify(plan1a) === JSON.stringify(plan1b), 'Identical seeds should yield identical plans');
-  assert(JSON.stringify(plan1a) !== JSON.stringify(plan2), 'Different seeds should yield different plans');
+function testRotationVaries() {
+  const day0 = getPlan(0, { style: 'gym' });
+  const day1 = getPlan(1, { style: 'gym' });
+  const day3 = getPlan(3, { style: 'gym' });
+  assert(day0.format !== day1.format || day0.mode !== day1.mode, 'Consecutive gym days should rotate');
+  assert(day0.mode !== day3.mode, 'Phase should shift across rotation');
+}
 
-  // Finisher order
-  const defaultMoves = FINISHERS.default.map((m) => m.name);
-  assert(defaultMoves[0] === 'Jumping Jacks', 'First default finisher move should be Jumping Jacks');
+function testCalisthenicsEverywhere() {
+  const styles = [
+    { style: 'gym', equipment: 'calisthenics' },
+    { style: 'home', equipment: 'calisthenics' },
+    { style: 'outdoor', equipment: 'calisthenics' },
+  ];
+  styles.forEach(({ style, equipment }) => {
+    const plan = getPlan(2, { style, equipment });
+    const calisthenicsBlock = plan.blocks.find((block) => block.type === 'calisthenics');
+    assert(calisthenicsBlock, `${style} should include a calisthenics block`);
+    assert(calisthenicsBlock.exercises.length > 0, 'Calisthenics block should have movements');
+  });
+}
+
+function testHiitLibrary() {
+  assert(Array.isArray(HIIT_LIBRARY) && HIIT_LIBRARY.length >= 3, 'HIIT library needs variety');
+  HIIT_LIBRARY.forEach((sequence) => {
+    assert(sequence.length === 7, 'Every HIIT sequence must have 7 movements');
+  });
+}
+
+function testCalisthenicsCatalog() {
+  assert(CALISTHENICS_MOVES.length >= 6, 'Calisthenics catalog should provide depth');
+}
+
+function run() {
+  testDurations();
+  testLevelScaling();
+  testRotationVaries();
+  testCalisthenicsEverywhere();
+  testHiitLibrary();
+  testCalisthenicsCatalog();
   console.log('All tests passed.');
 }
 
-runTests();
+run();
