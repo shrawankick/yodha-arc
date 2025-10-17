@@ -1,123 +1,100 @@
-# Yodha Arc – Cavill Physique Coach (MVP)
+# Yodha Arc — Adaptive Training Arc
 
-Welcome to **Yodha Arc**, a lightweight progressive web application (PWA) that
-guides users towards a Henry‑Cavill‑style physique: strong, lean and
-athletic. This repository contains a complete, working minimum viable
-product written in vanilla JavaScript. The app generates daily workouts,
-tracks progress and provides nutrition guidance—all offline‑friendly and
-mobile‑ready.
+Yodha Arc is a fully client-side coaching experience that rotates gym, home
+and outdoor sessions while letting athletes build precision “muscle sculpt”
+days directly on an interactive anatomy map. The interface guides users
+through a cinematic welcome, environment selection, level tuning and plan
+review so every training day feels intentional and fresh.
 
-## Features
+## Feature Highlights
 
-* **6‑day Push–Pull–Legs Hybrid** – A structured weekly program with
-  compound and accessory movements. The plan automatically rotates
-  exercises to avoid overuse.
-* **Selectable gym formats** – Choose between Push, Pull or Leg templates
-  directly in the session.
-* **Daily plan generator** – Generates a warm‑up, main workout table
-  (exercise, focus, sets, reps, starting weight and notes), a mandatory
-  7‑minute finisher and a cooldown. Each day includes an affirmation.
-* **Weekly seed rotation** – Workout variations remain consistent within a week and refresh each new week.
-* **Level & language selection** – Supports Beginner/Intermediate levels and
-  English/Telugu copy. A header dropdown lets users switch languages and the
-  selection persists across sessions.
-* **Finisher library** – Select default, bodyweight or low‑impact finishers with a move‑aware 7‑minute timer.
-* **Checklist & logging** – Users can tick off hydration, sleep, warm‑up
-  and pump, record their RPE and mood, and enter starting weights per
-  exercise. Data can be exported as CSV for analysis.
-* **Hamburger menu** – Settings and language selection are tucked away to
-  preserve the app’s branding.
-* **Offline support** – A service worker caches static assets so the app
-  functions offline once installed. It can be installed to a device
-  home screen like a native app.
-* **Testing** – A simple Node test harness validates the workout
-  generator logic.
+- **Guided stepper workflow** – A four-step flow (welcome → environment →
+  profile → session) keeps the user anchored, with automatic focus and
+  smooth scrolling to the active card.
+- **Custom muscle sculptor** – Tap up to three muscle groups on the neon
+  anatomy map to generate bespoke PPL-style sessions. Selection status and a
+  clear button keep editing frictionless, and plans refresh immediately as
+  choices change.
+- **Environment-aware templates** – Gym, home and outdoor templates rotate
+  volume/size phases, enforce the 70-minute cap and finish every day with a
+  mandatory seven-move HIIT burst.
+- **Auto level promotion** – Completing 30 Beginner sessions unlocks
+  Intermediate, and 40 more unlock Advanced. Session counters reset after
+  each promotion so users keep progressing.
+- **Daily intelligence** – The dashboard tracks streaks, the last style
+  used, a feedback-fed history log and a main-lift progress graph built from
+  logged weights.
+- **Persistent feedback loop** – Every session stores feedback (“too easy”,
+  “just right”, “too tough”), optional notes and load entries so tomorrow’s
+  intensity bias adapts automatically.
 
-## Repository Structure
+## Project Layout
 
 ```
 yodha-arc/
-├── index.html        — entry point; minimal HTML linking styles and scripts
-├── app.js            — application logic (translations, state, generator, UI)
-├── style.css         — base styling for a clean, modern interface
-├── manifest.json     — PWA manifest describing icons, colours and display
-├── service-worker.js — offline caching logic
-├── icon-192.png      — application icon (192×192)
-├── icon-512.png      — application icon (512×512)
+├── app.js            # Planner logic, storage, UI controller and muscle map
+├── index.html        # Multi-step interface shell
+├── styles.css        # Neon gradient visual system and responsive layout
+├── preview.js        # Zero-dependency static preview server
+├── package.json      # npm scripts for previewing and testing
+├── manifest.json     # PWA manifest
+├── service-worker.js # Offline cache bootstrap
+├── icon-192.png      # App icon (192×192)
+├── icon-512.png      # App icon (512×512)
 ├── tests/
-│   └── test.js       — minimal test harness for generator functions
-└── README.md         — this document
+│   └── test.js       # Node assertions for planner invariants
+└── README.md         # This document
 ```
 
-## Running Locally
+## Previewing the Experience
 
-You do not need any external package manager (like npm) to run this app; it
-is written in pure HTML/JS/CSS. To serve it locally with a simple HTTP
-server:
+A lightweight preview server is bundled so you can review the exact build
+before committing or shipping changes.
 
+```bash
+npm install    # optional – there are no runtime deps
+npm run preview
 ```
-cd yodha-arc
-python3 -m http.server 8000
+
+By default the server listens on <http://localhost:4173>. Set the `PORT`
+environment variable to override it:
+
+```bash
+PORT=5000 npm run preview
 ```
 
-Then navigate to [`http://localhost:8000`](http://localhost:8000) in your
-browser. If you open the app directly from the file system (e.g. by
-double‑clicking `index.html`), some browsers will disallow the service
-worker. Serving over HTTP solves this.
+Stop the server at any time with `Ctrl+C`.
+
+If you prefer not to use npm you can invoke the script directly:
+
+```bash
+node preview.js
+```
 
 ## Running Tests
 
-Node is available in the environment. To run the tests that validate the
-workout generator logic:
+All generator and scheduling rules are validated through a small Node test
+suite:
 
+```bash
+npm test
+# or
+node tests/test.js
 ```
-cd yodha-arc/tests
-node test.js
-```
 
-All assertions should pass. You can add additional tests by extending
-`tests/test.js`.
+The tests confirm the 70-minute cap, HIIT finisher, rotation variety,
+calisthenics availability and the custom muscle selector’s three-muscle
+limit.
 
-## Deploying / Shipping
+## Extending Further
 
-Because the application is a collection of static files, it can be hosted
-almost anywhere:
+- Introduce authentication or cloud sync so athletes can resume progress on
+  any device.
+- Layer in form videos or technique cues for the custom builder’s exercises.
+- Add structured deload weeks and strength progressions keyed to the stored
+  intensity feedback.
+- Export logs as CSV/JSON so lifters can take their data into external
+  analytics tools.
 
-* **GitHub Pages** – After pushing this repository to GitHub, enable
-  GitHub Pages for the `main` branch (`/root` directory). The app will be
-  available at `https://<username>.github.io/<repository>/`.
-* **Vercel / Netlify** – Create a new project and point it at your GitHub
-  repository. Use the default static site settings (no build step) so
-  Vercel/Netlify simply serve the `index.html`.
-* **Firebase Hosting** – Initialise Firebase hosting and run
-  `firebase deploy` to upload the static files.
-
-Any hosting platform that can serve static assets over HTTPS will work. The
-important part for PWA installation is that the site is served from a
-secure origin (`https`), so opening `index.html` directly from disk will
-not allow installation.
-
-## Contributing & Extending
-
-This MVP is designed to be a foundation. Here are some ideas for
-extending it:
-
-* **IndexedDB persistence** – Replace the simple `localStorage` with
-  IndexedDB (via Dexie.js) to store complete training history, body
-  measurements, photos and nutrition logs.
-* **Charting** – Use a lightweight library (like Chart.js) to display
-  moving average trends for weight and protein intake.
-* **Notifications** – Integrate the Notifications API to send daily
-  reminders at 5:00 AM IST.
-* **Video cues** – Add embedded technique videos and form cues for each
-  exercise.
-* **Automatic deloading & progression** – Implement the progression
-  logic described in the specification to adjust weights and sets based on
-  user performance and recovery signals.
-
-## Licensing
-
-This project is provided for educational purposes. You are free to use
-it as a starting point for your own fitness app. All content, including
-affirmations and exercise descriptions, can be modified to suit your
-requirements.
+The project is intentionally dependency-light and modular (OOP services for
+profile, library and planner logic) to make experimentation painless.

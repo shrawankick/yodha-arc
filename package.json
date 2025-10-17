@@ -1,0 +1,9 @@
+{
+  "name": "yodha-arc",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "preview": "node preview.js",
+    "test": "node tests/test.js"
+  }
+}
