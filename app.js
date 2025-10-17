@@ -267,7 +267,7 @@ const seededRandom = (seed) => {
 const roundDuration = (minutes) => Math.min(70, Math.round(minutes));
 
 function adjustSetsForLevel(exercises, level, intensityBias = 1) {
-  const factor = (level === 'Beginner' ? 0.8 : level === 'Intermediate' ? 1 : 1.2) * intensityBias;
+  const factor = (level === 'Beginner' ? 0.8 : level === 'Intermediate' ? 1 : 1.25) * intensityBias;
   return exercises.map((exercise) => {
     if (!exercise.sets) return exercise;
     const baseSets = typeof exercise.sets === 'number' ? exercise.sets : parseInt(String(exercise.sets).split('×')[0], 10) || exercise.sets;
@@ -280,25 +280,28 @@ function ensurePlanDuration(plan) {
   const base = 10; // warm-up
   const hiit = 7;
   const perSet = 3.5;
-  const accessories = plan.blocks.flatMap((b) => b.exercises || []);
+  const accessories = plan.blocks.flatMap((block) => block.exercises || []);
   const totalSets = accessories.reduce((acc, ex) => acc + (typeof ex.sets === 'number' ? ex.sets : 1), 0);
   const estimated = base + hiit + totalSets * perSet;
-  plan.estimatedMinutes = roundDuration(estimated);
-  if (plan.estimatedMinutes > 70) {
-    plan.blocks.forEach((block) => {
-      if (!block.exercises) return;
-      block.exercises = block.exercises.map((ex) => {
-        if (typeof ex.sets === 'number' && ex.sets > 2) {
-          return { ...ex, sets: ex.sets - 1 };
-        }
-        return ex;
-      });
+  const updatedPlan = { ...plan, estimatedMinutes: roundDuration(estimated) };
+  if (updatedPlan.estimatedMinutes > 70) {
+    updatedPlan.blocks = updatedPlan.blocks.map((block) => {
+      if (!block.exercises) return block;
+      return {
+        ...block,
+        exercises: block.exercises.map((exercise) => {
+          if (typeof exercise.sets === 'number' && exercise.sets > 2) {
+            return { ...exercise, sets: exercise.sets - 1 };
+          }
+          return exercise;
+        }),
+      };
     });
-    const reducedSets = plan.blocks.flatMap((b) => b.exercises || [])
+    const reducedSets = updatedPlan.blocks.flatMap((block) => block.exercises || [])
       .reduce((acc, ex) => acc + (typeof ex.sets === 'number' ? ex.sets : 1), 0);
-    plan.estimatedMinutes = roundDuration(base + hiit + reducedSets * perSet);
+    updatedPlan.estimatedMinutes = roundDuration(base + hiit + reducedSets * perSet);
   }
-  return plan;
+  return updatedPlan;
 }
 
 function buildCalisthenicsBlock(rand, intensityBias = 1, level = 'Beginner') {
@@ -306,179 +309,389 @@ function buildCalisthenicsBlock(rand, intensityBias = 1, level = 'Beginner') {
   const baseSets = level === 'Beginner' ? 2 : level === 'Intermediate' ? 3 : 4;
   const sets = Math.max(2, Math.round(baseSets * intensityBias));
   return {
-    title: STRINGS[STATE.lang].calisthenicsTag,
+    title: 'Calisthenics mastery',
     type: 'calisthenics',
-    exercises: shuffled.slice(0, 4).map((move) => ({ ...move, sets, reps: '8–12' })),
+    exercises: shuffled.slice(0, 4).map((move) => ({ ...move, sets, reps: move.reps || '8–12' })),
   };
 }
 
-function generateGymPlan({ rand, level, rotationPhase, intensityBias }) {
-  const order = ['push', 'pull', 'legs', 'push', 'pull', 'legs'];
-  const format = order[rotationPhase % order.length];
-  const mode = rotationPhase % 6 < 3 ? 'volume' : 'size';
-  const raw = GYM_LIBRARY[format][mode];
-  const adjusted = adjustSetsForLevel(raw, level, intensityBias).map((ex) => {
-    if (mode === 'volume' && typeof ex.sets === 'number') {
-      return { ...ex, tempo: 'Controlled 3-1-1', rest: '90s' };
-    }
-    if (mode === 'size' && typeof ex.sets === 'number') {
-      return { ...ex, tempo: 'Explosive concentric', rest: '75s' };
-    }
-    return ex;
-  });
-  return {
-    format,
-    mode,
-    blocks: [
-      { title: 'Primary lifts', exercises: adjusted.slice(0, 3) },
-      { title: 'Accessory rotation', exercises: adjusted.slice(3) },
-      buildCalisthenicsBlock(rand, intensityBias, level),
-    ],
-  };
-}
+/* -------------------------------------------------------------------------- */
+/* Plan generator                                                              */
+/* -------------------------------------------------------------------------- */
 
-function generateHomePlan({ rand, level, rotationPhase, equipment, intensityBias }) {
-  if (equipment === 'calisthenics') {
-    return {
-      format: 'calisthenics',
-      mode: 'skill',
-      blocks: [buildCalisthenicsBlock(rand, intensityBias, level)],
-    };
+class WorkoutLibrary {
+  constructor() {
+    this.hiit = HIIT_LIBRARY;
   }
-  if (equipment === 'minimal') {
-    const plan = HOME_LIBRARY.minimal.total;
+
+  getCalisthenicsBlock(rand, intensityBias, level) {
+    return buildCalisthenicsBlock(rand, intensityBias, level);
+  }
+
+  getGymPlan(format, mode) {
+    return GYM_LIBRARY[format][mode];
+  }
+
+  getHomePlan(equipment, split) {
+    if (equipment === 'minimal') return HOME_LIBRARY.minimal.total;
+    if (equipment === 'calisthenics') return HOME_LIBRARY.calisthenics.flow;
+    return HOME_LIBRARY.dumbbell[split];
+  }
+
+  getOutdoorPlan(equipment) {
+    return OUTDOOR_LIBRARY[equipment].plan;
+  }
+
+  buildCustomForMuscles(muscles, context) {
+    const exercises = [];
+    muscles.forEach((muscle) => {
+      const catalog = CUSTOM_LIBRARY[muscle];
+      if (!catalog) return;
+      exercises.push(...catalog[context]);
+    });
+    return exercises;
+  }
+}
+
+class PlanGenerator {
+  constructor(library) {
+    this.library = library;
+  }
+
+  generate(date = new Date(), options = {}) {
+    const {
+      style = 'gym',
+      level = 'Beginner',
+      goal = 'strength',
+      equipment = 'freeweight',
+      intensityBias = 1,
+      customMuscles = [],
+    } = options;
+
+    const dayIndex = dayIndexFromDate(date);
+    const rand = seededRandom(dayIndex + 1);
+    const rotationPhase = dayIndex % 6;
+
+    let plan;
+    if (style === 'custom') {
+      plan = this.generateCustomPlan({ customMuscles, level, intensityBias, rand, equipment });
+    } else if (style === 'gym') {
+      plan = this.generateGymPlan({ rotationPhase, level, intensityBias, rand });
+    } else if (style === 'home') {
+      plan = this.generateHomePlan({ rotationPhase, level, intensityBias, equipment, rand });
+    } else {
+      plan = this.generateOutdoorPlan({ rotationPhase, level, intensityBias, equipment, rand });
+    }
+
+    const hiit = randomFrom(this.library.hiit, rand);
+    const calisthenicsBlock = plan.blocks.find((b) => b.type === 'calisthenics');
+    if (calisthenicsBlock) {
+      calisthenicsBlock.exercises = calisthenicsBlock.exercises.map((exercise) => ({
+        ...exercise,
+        reps: exercise.reps || '6–10',
+      }));
+    }
+
+    const goalFocus = GOAL_FOCUS[goal] || GOAL_FOCUS.strength;
+    const finalPlan = ensurePlanDuration({
+      ...plan,
+      style,
+      level,
+      goal,
+      equipment,
+      goalFocus,
+      hiit,
+      date: date.toISOString().slice(0, 10),
+      intensityBias,
+    });
+    return finalPlan;
+  }
+
+  generateGymPlan({ rotationPhase, level, intensityBias, rand }) {
+    const order = ['push', 'pull', 'legs', 'push', 'pull', 'legs'];
+    const format = order[rotationPhase % order.length];
+    const mode = rotationPhase % 6 < 3 ? 'volume' : 'size';
+    const raw = this.library.getGymPlan(format, mode);
+    const adjusted = adjustSetsForLevel(raw, level, intensityBias).map((exercise) => {
+      if (mode === 'volume' && typeof exercise.sets === 'number') {
+        return { ...exercise, tempo: 'Controlled 3-1-1', rest: '90s' };
+      }
+      if (mode === 'size' && typeof exercise.sets === 'number') {
+        return { ...exercise, tempo: 'Explosive concentric', rest: '75s' };
+      }
+      return exercise;
+    });
     return {
-      format: 'total',
-      mode: 'bodyweight',
+      format,
+      mode,
       blocks: [
-        { title: 'Full-body flow', exercises: adjustSetsForLevel(plan, level, intensityBias) },
-        buildCalisthenicsBlock(rand, intensityBias, level),
+        { title: 'Primary lifts', exercises: adjusted.slice(0, 3) },
+        { title: 'Accessory rotation', exercises: adjusted.slice(3) },
+        this.library.getCalisthenicsBlock(rand, intensityBias, level),
       ],
     };
   }
-  const split = rotationPhase % 2 === 0 ? 'upper' : 'lower';
-  const plan = HOME_LIBRARY.dumbbell[split];
-  return {
-    format: split,
-    mode: 'dumbbell',
-    blocks: [
-      { title: `${split === 'upper' ? 'Upper' : 'Lower'} power`, exercises: adjustSetsForLevel(plan, level, intensityBias) },
-      buildCalisthenicsBlock(rand, intensityBias, level),
-    ],
-  };
-}
 
-function generateOutdoorPlan({ rand, rotationPhase, equipment, level, intensityBias }) {
-  if (equipment === 'calisthenics') {
+  generateHomePlan({ rotationPhase, level, intensityBias, equipment, rand }) {
+    if (equipment === 'calisthenics') {
+      return {
+        format: 'calisthenics',
+        mode: 'skill',
+        blocks: [this.library.getCalisthenicsBlock(rand, intensityBias, level)],
+      };
+    }
+    if (equipment === 'minimal') {
+      const plan = this.library.getHomePlan('minimal');
+      return {
+        format: 'total body',
+        mode: 'bodyweight',
+        blocks: [
+          { title: 'Full-body flow', exercises: adjustSetsForLevel(plan, level, intensityBias) },
+          this.library.getCalisthenicsBlock(rand, intensityBias, level),
+        ],
+      };
+    }
+    const split = rotationPhase % 2 === 0 ? 'upper' : 'lower';
+    const plan = this.library.getHomePlan('dumbbell', split);
     return {
-      format: 'calisthenics',
-      mode: 'skill',
-    blocks: [buildCalisthenicsBlock(rand, intensityBias, level)],
-  };
-}
-  const variant = equipment === 'running' ? OUTDOOR_LIBRARY.running : OUTDOOR_LIBRARY.swimming;
-  const adjusted = adjustSetsForLevel(variant.plan, level, intensityBias);
-  return {
-    format: equipment,
-    mode: 'endurance',
-    blocks: [
-      { title: equipment === 'running' ? 'Track session' : 'Pool session', exercises: adjusted },
-      buildCalisthenicsBlock(rand, intensityBias, level),
-    ],
-  };
+      format: split,
+      mode: 'dumbbell',
+      blocks: [
+        { title: `${split === 'upper' ? 'Upper' : 'Lower'} power`, exercises: adjustSetsForLevel(plan, level, intensityBias) },
+        this.library.getCalisthenicsBlock(rand, intensityBias, level),
+      ],
+    };
+  }
+
+  generateOutdoorPlan({ level, intensityBias, equipment, rand }) {
+    if (equipment === 'calisthenics') {
+      return {
+        format: 'calisthenics',
+        mode: 'skill',
+        blocks: [this.library.getCalisthenicsBlock(rand, intensityBias, level)],
+      };
+    }
+    const plan = this.library.getOutdoorPlan(equipment);
+    return {
+      format: equipment,
+      mode: 'endurance',
+      blocks: [
+        { title: equipment === 'running' ? 'Track session' : 'Pool session', exercises: adjustSetsForLevel(plan, level, intensityBias) },
+        this.library.getCalisthenicsBlock(rand, intensityBias, level),
+      ],
+    };
+  }
+
+  generateCustomPlan({ customMuscles, level, intensityBias, rand, equipment }) {
+    const muscles = customMuscles.length ? customMuscles : ['chest', 'back'];
+    const context = equipment === 'machines' || equipment === 'freeweight' ? 'gym'
+      : equipment === 'dumbbell' || equipment === 'minimal' || equipment === 'calisthenics' ? 'home'
+      : 'outdoor';
+    const exercises = this.library.buildCustomForMuscles(muscles, context);
+    const accessoryBlock = adjustSetsForLevel(exercises.slice(3), level, intensityBias);
+    const mainBlock = adjustSetsForLevel(exercises.slice(0, 3), level, intensityBias).map((exercise) => ({
+      ...exercise,
+      main: true,
+    }));
+
+    const categories = new Set(muscles.map((id) => CUSTOM_LIBRARY[id]?.category).filter(Boolean));
+    let format = 'custom';
+    if (categories.has('push') && categories.size === 1) format = 'push';
+    else if (categories.has('pull') && categories.size === 1) format = 'pull';
+    else if (categories.has('legs') && categories.size === 1) format = 'legs';
+
+    const blocks = [
+      { title: 'Primary focus', exercises: mainBlock },
+    ];
+    if (accessoryBlock.length) {
+      blocks.push({ title: 'Volume builder', exercises: accessoryBlock });
+    }
+    blocks.push(this.library.getCalisthenicsBlock(rand, intensityBias, level));
+
+    return {
+      format,
+      mode: 'muscle-selection',
+      blocks,
+    };
+  }
 }
 
-function applyGoalFocus(plan, goal) {
-  return {
-    ...plan,
-    goalFocus: GOAL_FOCUS[goal] || GOAL_FOCUS.strength,
-  };
-}
+const library = new WorkoutLibrary();
+const generator = new PlanGenerator(library);
 
 function generateWorkoutPlan(date = new Date(), options = {}) {
-  const {
-    style = STATE.style,
-    level = STATE.level,
-    goal = STATE.goal,
-    equipment = STATE.equipment,
-    intensityBias = STATE.intensityBias,
-  } = options;
-
-  const dayIndex = dayIndexFromDate(date);
-  const rand = seededRandom(dayIndex + 1);
-  const rotationPhase = dayIndex % 6;
-
-  let plan;
-  if (style === 'gym') {
-    plan = generateGymPlan({ rand, level, rotationPhase, intensityBias });
-  } else if (style === 'home') {
-    plan = generateHomePlan({ rand, level, rotationPhase, equipment, intensityBias });
-  } else {
-    plan = generateOutdoorPlan({ rand, level, rotationPhase, equipment, intensityBias });
-  }
-
-  const hiit = randomFrom(HIIT_LIBRARY, rand);
-  const calisthenics = plan.blocks.find((b) => b.type === 'calisthenics');
-  if (calisthenics) {
-    calisthenics.exercises = calisthenics.exercises.map((ex) => ({
-      ...ex,
-      reps: ex.reps || '6–10',
-    }));
-  }
-
-  const withGoal = applyGoalFocus(plan, goal);
-  const estimatedPlan = ensurePlanDuration({
-    ...withGoal,
-    style,
-    level,
-    goal,
-    equipment,
-    hiit,
-    intensityBias,
-    date: date.toISOString().slice(0, 10),
-  });
-  return estimatedPlan;
+  return generator.generate(date, options);
 }
 
-// UI helpers
-const $ = doc ? (selector) => doc.querySelector(selector) : () => null;
-const $$ = doc ? (selector) => Array.from(doc.querySelectorAll(selector)) : () => [];
+/* -------------------------------------------------------------------------- */
+/* Profile + History management                                               */
+/* -------------------------------------------------------------------------- */
 
-function activate(id) {
-  if (!doc) return;
-  $$('.screen').forEach((screen) => { screen.hidden = screen.id !== id.slice(1); });
-  window.scrollTo({ top: 0, behavior: 'instant' });
+class ProfileManager {
+  constructor(store) {
+    this.store = store;
+    this.state = this.load();
+  }
+
+  load() {
+    const defaults = {
+      user: { name: 'Warrior' },
+      lang: 'en',
+      style: 'gym',
+      lastGuidedStyle: 'gym',
+      level: 'Beginner',
+      goal: 'strength',
+      equipment: 'freeweight',
+      format: 'push',
+      intensityBias: 1,
+      logs: [],
+      planCache: {},
+      customMuscles: [],
+      sessionCounts: { Beginner: 0, Intermediate: 0, Advanced: 0 },
+    };
+    const saved = this.store.load('profile', {});
+    return {
+      ...defaults,
+      ...saved,
+      sessionCounts: { ...defaults.sessionCounts, ...(saved.sessionCounts || {}) },
+    };
+  }
+
+  persist() {
+    this.store.save('profile', this.state);
+  }
+
+  recordSession(plan, feedback, weights, notes) {
+    const previousLevel = this.state.level;
+    const entry = {
+      date: new Date().toISOString().slice(0, 10),
+      plan,
+      feedback,
+      weights,
+      notes,
+      mainLiftWeight: this.determineMainLiftWeight(weights, plan),
+    };
+    this.state.logs = this.state.logs.filter((log) => log.date !== entry.date);
+    this.state.logs.push(entry);
+    this.bumpSessionCounter();
+    const levelUp = this.state.level !== previousLevel ? { from: previousLevel, to: this.state.level } : null;
+    this.persist();
+    return { entry, levelUp };
+  }
+
+  bumpSessionCounter() {
+    const currentLevel = this.state.level;
+    const today = todayKey();
+    const todayPlan = this.state.planCache?.[today];
+    if (!this.state.sessionCounts[currentLevel]) this.state.sessionCounts[currentLevel] = 0;
+    this.state.sessionCounts[currentLevel] += 1;
+
+    const threshold = LEVEL_THRESHOLDS[currentLevel];
+    if (threshold && this.state.sessionCounts[currentLevel] >= threshold) {
+      if (currentLevel === 'Beginner') {
+        this.state.level = 'Intermediate';
+      } else if (currentLevel === 'Intermediate') {
+        this.state.level = 'Advanced';
+      }
+      this.state.sessionCounts[this.state.level] = this.state.sessionCounts[this.state.level] || 0;
+      this.state.planCache = todayPlan ? { [today]: todayPlan } : {};
+    }
+  }
+
+  determineMainLiftWeight(weights, plan) {
+    const mainIndices = [];
+    plan.blocks.forEach((block, blockIndex) => {
+      (block.exercises || []).forEach((exercise, index) => {
+        if (exercise.main) {
+          mainIndices.push({ blockIndex, index });
+        }
+      });
+    });
+    const entries = weights.filter((entry) => mainIndices.some((mi) => mi.blockIndex === entry.block && mi.index === entry.index));
+    if (!entries.length) return null;
+    return entries.reduce((acc, entry) => acc + entry.weight, 0) / entries.length;
+  }
+
+  adjustIntensity(feedback) {
+    if (feedback === 'easy') this.state.intensityBias = Math.min(1.4, this.state.intensityBias + 0.05);
+    if (feedback === 'hard') this.state.intensityBias = Math.max(0.7, this.state.intensityBias - 0.05);
+    this.persist();
+  }
+
+  cachePlan(plan) {
+    const key = plan.date;
+    this.state.planCache[key] = plan;
+    this.persist();
+  }
+
+  loadCachedPlan(dateKey) {
+    return this.state.planCache[dateKey];
+  }
+
+  clearOldPlan(dateKey) {
+    this.state.planCache = { [dateKey]: this.state.planCache[dateKey] };
+    this.persist();
+  }
+
+  updateSelection(updates) {
+    if (Object.prototype.hasOwnProperty.call(updates, 'style')) {
+      if (updates.style && updates.style !== 'custom') {
+        this.state.lastGuidedStyle = updates.style;
+      } else if (!this.state.lastGuidedStyle) {
+        this.state.lastGuidedStyle = 'gym';
+      }
+    }
+    this.state = { ...this.state, ...updates };
+    this.persist();
+  }
+
+  get logs() {
+    return [...this.state.logs];
+  }
 }
 
-function formatPlanSummary(plan) {
-  const focus = plan.goalFocus.slice(0, 2).join(' · ');
-  return `${plan.style.toUpperCase()} · ${plan.format.toUpperCase()} · ${focus}`;
+const profileManager = new ProfileManager(storageService);
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function ensureTodayPlan() {
   const key = todayKey();
-  const cached = STATE.planCache[key];
+  const cached = profileManager.loadCachedPlan(key);
   const needsRefresh = !cached
-    || cached.style !== STATE.style
-    || cached.level !== STATE.level
-    || cached.goal !== STATE.goal
-    || cached.equipment !== STATE.equipment;
+    || cached.style !== profileManager.state.style
+    || cached.level !== profileManager.state.level
+    || cached.goal !== profileManager.state.goal
+    || cached.equipment !== profileManager.state.equipment
+    || JSON.stringify(cached.customMuscles || []) !== JSON.stringify(profileManager.state.customMuscles || []);
+
   if (needsRefresh) {
-    const plan = generateWorkoutPlan(new Date(), STATE);
-    STATE.planCache[key] = plan;
-    save('planCache', STATE.planCache);
+    const plan = generateWorkoutPlan(new Date(), profileManager.state);
+    profileManager.cachePlan({ ...plan, customMuscles: profileManager.state.customMuscles });
+    return plan;
   }
-  return STATE.planCache[key];
+  return cached;
 }
 
-function updateTime() {
-  if (!doc) return;
-  const node = $('#timeVal');
-  if (node) node.textContent = fmtTime(new Date());
+/* -------------------------------------------------------------------------- */
+/* UI: helpers                                                                 */
+/* -------------------------------------------------------------------------- */
+
+const $ = doc ? (selector) => doc.querySelector(selector) : () => null;
+const $$ = doc ? (selector) => Array.from(doc.querySelectorAll(selector)) : () => [];
+
+function fmtTime(date) {
+  return date.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Kolkata',
+  });
 }
 
-function computeStreak() {
-  const sorted = [...STATE.logs].sort((a, b) => (a.date < b.date ? 1 : -1));
+function computeStreak(logs) {
+  if (!logs.length) return 0;
+  const sorted = [...logs].sort((a, b) => (a.date < b.date ? 1 : -1));
   let streak = 0;
   let prevDate = todayKey();
   sorted.forEach((entry, idx) => {
@@ -497,15 +710,15 @@ function computeStreak() {
   return streak;
 }
 
-function renderHistory() {
+function renderHistory(logs) {
   if (!doc) return;
   const list = $('#historyList');
   if (!list) return;
   list.innerHTML = '';
-  const sorted = [...STATE.logs].sort((a, b) => (a.date > b.date ? -1 : 1)).slice(0, 5);
+  const sorted = [...logs].sort((a, b) => (a.date > b.date ? -1 : 1)).slice(0, 6);
   if (!sorted.length) {
     const empty = doc.createElement('li');
-    empty.textContent = STRINGS[STATE.lang].noHistory;
+    empty.textContent = 'No sessions logged yet — your graph will appear here once you complete a workout.';
     list.appendChild(empty);
     return;
   }
@@ -524,303 +737,455 @@ function renderHistory() {
   });
 }
 
-function renderProgressChart() {
+function renderProgressChart(logs) {
   if (!doc) return;
   const canvas = $('#progressChart');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const logs = STATE.logs.filter((l) => typeof l.mainLiftWeight === 'number');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (!logs.length) {
-    ctx.fillStyle = '#777';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('Log sessions with weights to see progress.', 10, canvas.height / 2);
+
+  const data = logs
+    .filter((entry) => entry.mainLiftWeight)
+    .sort((a, b) => (a.date > b.date ? 1 : -1));
+
+  if (!data.length) {
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '14px Inter, sans-serif';
+    ctx.fillText('Log main lift weights to see the graph', 20, canvas.height / 2);
     return;
   }
-  const sorted = logs.sort((a, b) => (a.date > b.date ? 1 : -1));
-  const weights = sorted.map((l) => l.mainLiftWeight);
-  const dates = sorted.map((l) => l.date);
-  const maxWeight = Math.max(...weights);
-  const minWeight = Math.min(...weights);
-  const range = Math.max(5, maxWeight - minWeight);
-  const padding = 20;
-  ctx.strokeStyle = '#0b84ff';
-  ctx.lineWidth = 2;
+
+  const padding = 30;
+  const min = Math.min(...data.map((entry) => entry.mainLiftWeight));
+  const max = Math.max(...data.map((entry) => entry.mainLiftWeight));
+  const range = Math.max(10, max - min);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  weights.forEach((weight, idx) => {
-    const x = padding + (idx / (weights.length - 1 || 1)) * (canvas.width - 2 * padding);
-    const y = canvas.height - padding - ((weight - minWeight) / range) * (canvas.height - 2 * padding);
-    if (idx === 0) ctx.moveTo(x, y);
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, canvas.height - padding);
+  ctx.lineTo(canvas.width - padding, canvas.height - padding);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#6ad4ff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  data.forEach((entry, index) => {
+    const x = padding + (index / Math.max(1, data.length - 1)) * (canvas.width - padding * 2);
+    const y = canvas.height - padding - ((entry.mainLiftWeight - min) / range) * (canvas.height - padding * 2);
+    if (index === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
-    ctx.fillStyle = '#0b84ff';
-    ctx.beginPath();
-    ctx.arc(x, y, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#222';
-    ctx.font = '10px sans-serif';
-    ctx.fillText(weight.toFixed(1), x - 10, y - 8);
   });
   ctx.stroke();
-  ctx.fillStyle = '#444';
-  ctx.font = '10px sans-serif';
-  dates.forEach((date, idx) => {
-    const x = padding + (idx / (weights.length - 1 || 1)) * (canvas.width - 2 * padding);
-    ctx.fillText(date.slice(5), x - 15, canvas.height - 5);
+
+  ctx.fillStyle = '#6ad4ff';
+  data.forEach((entry, index) => {
+    const x = padding + (index / Math.max(1, data.length - 1)) * (canvas.width - padding * 2);
+    const y = canvas.height - padding - ((entry.mainLiftWeight - min) / range) * (canvas.height - padding * 2);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
   });
 }
 
-function renderPlanScreen() {
-  if (!doc) return;
-  const plan = ensureTodayPlan();
-  $('#planFocus').textContent = formatPlanSummary(plan);
-  $('#planDuration').textContent = `${plan.estimatedMinutes} min`;
-  const rotationLabel = plan.mode === 'size' ? 'Size / hypertrophy focus' : plan.mode === 'volume' ? 'Volume / neural priming' : plan.mode;
-  $('#planRotation').textContent = rotationLabel;
-  const goalList = $('#goalFocusList');
-  goalList.innerHTML = '';
-  plan.goalFocus.forEach((tip) => {
-    const li = doc.createElement('li');
-    li.textContent = tip;
-    goalList.appendChild(li);
-  });
-  const blockRoot = $('#planBlocks');
-  blockRoot.innerHTML = '';
-  plan.blocks.forEach((block, blockIndex) => {
-    const section = doc.createElement('section');
-    section.className = 'plan-block';
-    section.innerHTML = `
-      <header class="plan-block__header">
-        <h3>${block.title}</h3>
-      </header>
-      <div class="plan-block__body"></div>
-    `;
-    const body = section.querySelector('.plan-block__body');
-    block.exercises.forEach((exercise, index) => {
-      const row = doc.createElement('div');
-      row.className = 'plan-exercise';
-      const mainClass = exercise.main ? 'plan-exercise--main' : '';
-      row.innerHTML = `
-        <div class="plan-exercise__info ${mainClass}">
-          <div class="plan-exercise__name">${exercise.name}</div>
-          <div class="plan-exercise__meta">${exercise.sets} × ${exercise.reps || 'as controlled'}${exercise.tempo ? ` · ${exercise.tempo}` : ''}${exercise.rest ? ` · Rest ${exercise.rest}` : ''}</div>
-        </div>
-        <div class="plan-exercise__track">
-          <label>Weight (kg)<input type="number" step="0.5" class="weight-input" data-block="${blockIndex}" data-index="${index}" /></label>
-        </div>
-      `;
-      body.appendChild(row);
-    });
-    blockRoot.appendChild(section);
-  });
-  const hiitList = $('#hiitList');
-  hiitList.innerHTML = '';
-  plan.hiit.forEach((move, idx) => {
-    const li = doc.createElement('li');
-    li.textContent = `${idx + 1}. ${move}`;
-    hiitList.appendChild(li);
-  });
+function formatPlanSummary(plan) {
+  const focus = plan.goalFocus.slice(0, 2).join(' · ');
+  return `${plan.style.toUpperCase()} · ${plan.format.toUpperCase()} · ${focus}`;
 }
 
-function renderWelcome() {
-  if (!doc) return;
-  $('#welcomeTitle').textContent = `${STRINGS[STATE.lang].welcome}, ${STATE.user.name}!`;
-  $('#lastWorkoutVal').textContent = STATE.logs.length ? STATE.logs[STATE.logs.length - 1].date : '—';
-  $('#streakVal').textContent = computeStreak();
-  $('#lastStyleChip').textContent = formatPlanSummary(ensureTodayPlan());
-  updateTime();
-  renderHistory();
-  renderProgressChart();
-}
+/* -------------------------------------------------------------------------- */
+/* Muscle selector UI component                                               */
+/* -------------------------------------------------------------------------- */
 
-function applyLang() {
-  if (!doc) return;
-  doc.documentElement.lang = STATE.lang;
-  $$('[data-i18n]').forEach((el) => {
-    const key = el.getAttribute('data-i18n');
-    if (STRINGS[STATE.lang][key]) el.textContent = STRINGS[STATE.lang][key];
-  });
-  $$('[data-i18n-placeholder]').forEach((el) => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (STRINGS[STATE.lang][key]) el.setAttribute('placeholder', STRINGS[STATE.lang][key]);
-  });
-  renderWelcome();
-  renderPlanScreen();
-}
-
-function initLang() {
-  if (!doc) return;
-  const select = $('#languageSelect');
-  if (!select) return;
-  select.value = STATE.lang;
-  select.addEventListener('change', () => {
-    STATE.lang = select.value;
-    save('lang', STATE.lang);
-    applyLang();
-  });
-}
-
-function initStyleModal() {
-  if (!doc) return;
-  const modal = $('#styleModal');
-  if (!modal) return;
-  const styleButtons = $$('#styleModal button[data-style]');
-  const levelSelect = $('#levelSelect');
-  const goalSelect = $('#goalSelect');
-  const equipmentSelect = $('#equipmentSelect');
-  updateEquipmentOptions();
-  levelSelect.value = STATE.level;
-  goalSelect.value = STATE.goal;
-  equipmentSelect.value = STATE.equipment;
-  styleButtons.forEach((btn) => {
-    btn.classList.toggle('style-card--active', btn.dataset.style === STATE.style);
-    btn.addEventListener('click', () => {
-      STATE.style = btn.dataset.style;
-      save('style', STATE.style);
-      styleButtons.forEach((b) => b.classList.toggle('style-card--active', b === btn));
-      updateEquipmentOptions();
-    });
-  });
-  levelSelect.addEventListener('change', () => {
-    STATE.level = levelSelect.value;
-    save('level', STATE.level);
-  });
-  goalSelect.addEventListener('change', () => {
-    STATE.goal = goalSelect.value;
-    save('goal', STATE.goal);
-  });
-  equipmentSelect.addEventListener('change', () => {
-    STATE.equipment = equipmentSelect.value;
-    save('equipment', STATE.equipment);
-  });
-  $('#styleClose').addEventListener('click', () => { modal.hidden = true; renderWelcome(); renderPlanScreen(); });
-}
-
-function updateEquipmentOptions() {
-  if (!doc) return;
-  const equipmentSelect = $('#equipmentSelect');
-  if (!equipmentSelect) return;
-  const options = EQUIPMENT_VARIANTS[STATE.style];
-  equipmentSelect.innerHTML = '';
-  options.forEach((option) => {
-    const opt = doc.createElement('option');
-    opt.value = option;
-    opt.textContent = option.charAt(0).toUpperCase() + option.slice(1);
-    equipmentSelect.appendChild(opt);
-  });
-  if (!options.includes(STATE.equipment)) {
-    STATE.equipment = options[0];
+class MuscleSelector {
+  constructor(layout) {
+    this.layout = layout;
+    this.selected = new Set();
   }
-  equipmentSelect.value = STATE.equipment;
-}
 
-function initMenu() {
-  if (!doc) return;
-  const menu = $('#menu');
-  const overlay = $('#menuOverlay');
-  $('#btnMenu').addEventListener('click', () => { menu.classList.add('open'); overlay.classList.add('show'); });
-  overlay.addEventListener('click', () => { menu.classList.remove('open'); overlay.classList.remove('show'); });
-  $('#btnMenuClose').addEventListener('click', () => { menu.classList.remove('open'); overlay.classList.remove('show'); });
-}
+  init(container) {
+    if (!doc || !container) return;
+    container.innerHTML = '';
+    const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 200 420');
+    svg.setAttribute('class', 'muscle-map');
 
-function collectWeights() {
-  const weights = [];
-  $$('.weight-input').forEach((input) => {
-    if (input.value) {
-      weights.push({ block: Number(input.dataset.block), index: Number(input.dataset.index), weight: Number(input.value) });
+    this.layout.forEach((region) => {
+      const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', region.path);
+      path.dataset.muscle = region.id;
+      path.setAttribute('class', 'muscle-region');
+      path.addEventListener('click', () => this.toggle(region.id, path));
+      svg.appendChild(path);
+    });
+
+    container.appendChild(svg);
+    this.renderChipList(container);
+  }
+
+  toggle(id, pathNode) {
+    if (this.selected.has(id)) {
+      this.selected.delete(id);
+      if (pathNode) pathNode.classList.remove('active');
+    } else if (this.selected.size < 3) {
+      this.selected.add(id);
+      if (pathNode) pathNode.classList.add('active');
     }
-  });
-  return weights;
+    this.updateChips();
+  }
+
+  renderChipList(container) {
+    this.chipContainer = doc.createElement('div');
+    this.chipContainer.className = 'chip-container';
+    container.appendChild(this.chipContainer);
+    this.updateChips();
+  }
+
+  updateChips() {
+    if (!this.chipContainer) return;
+    this.chipContainer.innerHTML = '';
+    if (!this.selected.size) {
+      const empty = doc.createElement('span');
+      empty.className = 'chip chip--ghost';
+      empty.textContent = 'Select up to three focus muscles';
+      this.chipContainer.appendChild(empty);
+      return;
+    }
+    Array.from(this.selected).forEach((id) => {
+      const chip = doc.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip chip--pill';
+      chip.textContent = CUSTOM_LIBRARY[id]?.label || id;
+      chip.addEventListener('click', () => {
+        this.selected.delete(id);
+        const pathNode = doc.querySelector(`.muscle-region[data-muscle="${id}"]`);
+        if (pathNode) pathNode.classList.remove('active');
+        this.updateChips();
+      });
+      this.chipContainer.appendChild(chip);
+    });
+  }
+
+  value() {
+    return Array.from(this.selected);
+  }
+
+  setValue(muscles) {
+    this.selected = new Set(muscles);
+    $$('.muscle-region').forEach((node) => {
+      if (this.selected.has(node.dataset.muscle)) node.classList.add('active');
+      else node.classList.remove('active');
+    });
+    this.updateChips();
+  }
 }
 
-function determineMainLiftWeight(weights, plan) {
-  const mainIndices = [];
-  plan.blocks.forEach((block, blockIndex) => {
-    block.exercises.forEach((exercise, index) => {
-      if (exercise.main) {
-        mainIndices.push({ blockIndex, index });
+/* -------------------------------------------------------------------------- */
+/* Planner UI                                                                 */
+/* -------------------------------------------------------------------------- */
+
+class PlannerUI {
+  constructor(profile, planGenerator, muscleSelector) {
+    this.profile = profile;
+    this.generator = planGenerator;
+    this.muscleSelector = muscleSelector;
+    this.currentPlan = null;
+    this.lastGuidedStyle = this.profile.state.lastGuidedStyle
+      || (this.profile.state.style === 'custom' ? 'gym' : this.profile.state.style);
+  }
+
+  init() {
+    if (!doc) return;
+    this.cacheDom();
+    this.bindEvents();
+    this.handleCustomToggle();
+    this.activateStep(0);
+    this.renderWelcome();
+    this.renderPlanScreen();
+    renderHistory(this.profile.logs);
+    renderProgressChart(this.profile.logs);
+    this.tickClock();
+  }
+
+  cacheDom() {
+    this.welcomeScreen = $('#screen-welcome');
+    this.planScreen = $('#screen-plan');
+    this.startBtn = $('#btnStartExperience');
+    this.nextStepBtns = $$('.btn-step');
+    this.levelSelect = $('#levelSelect');
+    this.styleButtons = $$('.style-option');
+    this.goalSelect = $('#goalSelect');
+    this.equipmentSelect = $('#equipmentSelect');
+    this.customToggle = $('#customBuilderToggle');
+    this.customBuilderPanel = $('#customBuilderPanel');
+    this.muscleContainer = $('#muscleSelector');
+    this.planBlocks = $('#planBlocks');
+    this.hiitList = $('#hiitList');
+    this.goalFocusList = $('#goalFocusList');
+    this.planFocus = $('#planFocus');
+    this.planRotation = $('#planRotation');
+    this.planDuration = $('#planDuration');
+    this.motivationText = $('#motivationQuote');
+    this.stepper = $('#flowStepper');
+  }
+
+  bindEvents() {
+    if (this.startBtn) {
+      this.startBtn.addEventListener('click', () => {
+        this.activateStep(1);
+      });
+    }
+
+    this.nextStepBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const step = Number(btn.dataset.nextStep || '2');
+        if (step === 2) {
+          this.handleCustomToggle();
+        }
+        if (step === 3) {
+          this.updateStateFromSelectors();
+          this.renderPlanScreen(true);
+        }
+        this.activateStep(step);
+      });
+    });
+
+    if (this.levelSelect) {
+      this.levelSelect.value = this.profile.state.level;
+      this.levelSelect.addEventListener('change', () => {
+        this.profile.updateSelection({ level: this.levelSelect.value });
+        this.renderPlanScreen(true);
+      });
+    }
+
+    if (this.goalSelect) {
+      this.goalSelect.value = this.profile.state.goal;
+      this.goalSelect.addEventListener('change', () => {
+        this.profile.updateSelection({ goal: this.goalSelect.value });
+        this.renderPlanScreen(true);
+      });
+    }
+
+    if (this.equipmentSelect) {
+      this.updateEquipmentOptions();
+      this.equipmentSelect.addEventListener('change', () => {
+        this.profile.updateSelection({ equipment: this.equipmentSelect.value });
+        this.renderPlanScreen(true);
+      });
+    }
+
+    if (this.customToggle) {
+      this.customToggle.checked = this.profile.state.style === 'custom';
+      this.customToggle.addEventListener('change', () => {
+        const style = this.customToggle.checked ? 'custom' : (this.profile.state.lastGuidedStyle || this.lastGuidedStyle || 'gym');
+        this.profile.updateSelection({ style });
+        this.lastGuidedStyle = this.profile.state.lastGuidedStyle || this.lastGuidedStyle;
+        this.handleCustomToggle();
+        this.updateEquipmentOptions();
+        this.renderPlanScreen(true);
+      });
+    }
+
+    this.styleButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const style = btn.dataset.style;
+        this.profile.updateSelection({ style });
+        if (style !== 'custom') {
+          this.lastGuidedStyle = style;
+        }
+        this.customToggle.checked = style === 'custom';
+        this.handleCustomToggle();
+        this.updateEquipmentOptions();
+        this.renderPlanScreen(true);
+        this.styleButtons.forEach((b) => b.classList.toggle('style-option--active', b === btn));
+      });
+      if (btn.dataset.style === this.profile.state.style) {
+        btn.classList.add('style-option--active');
       }
     });
-  });
-  const entries = weights.filter((entry) => mainIndices.some((mi) => mi.blockIndex === entry.block && mi.index === entry.index));
-  if (!entries.length) return null;
-  return entries.reduce((acc, entry) => acc + entry.weight, 0) / entries.length;
+
+    $('#btnMarkDone')?.addEventListener('click', () => this.submitFeedback());
+    $('#btnBackHome')?.addEventListener('click', () => this.activateStep(0));
+    $('#linkChangeStyle')?.addEventListener('click', () => this.activateStep(1));
+  }
+
+  handleCustomToggle() {
+    if (!this.muscleContainer) return;
+    if (this.profile.state.style === 'custom') {
+      this.muscleSelector.init(this.muscleContainer);
+      this.muscleSelector.setValue(this.profile.state.customMuscles || []);
+      this.customBuilderPanel?.classList.remove('hidden');
+    } else {
+      this.customBuilderPanel?.classList.add('hidden');
+    }
+  }
+
+  updateStateFromSelectors() {
+    const muscles = this.profile.state.style === 'custom' ? this.muscleSelector.value() : [];
+    this.profile.updateSelection({ customMuscles: muscles });
+  }
+
+  activateStep(step) {
+    if (!doc) return;
+    this.stepper?.querySelectorAll('[data-step]').forEach((node) => {
+      node.classList.toggle('active', Number(node.dataset.step) === step);
+      node.classList.toggle('completed', Number(node.dataset.step) < step);
+    });
+
+    $('#step-landing')?.classList.toggle('hidden', step !== 0);
+    $('#step-experience')?.classList.toggle('hidden', step !== 1);
+    $('#step-level')?.classList.toggle('hidden', step !== 2);
+    $('#step-plan')?.classList.toggle('hidden', step !== 3);
+  }
+
+  tickClock() {
+    if (!doc) return;
+    const node = $('#timeVal');
+    if (node) node.textContent = fmtTime(new Date());
+    setTimeout(() => this.tickClock(), 60000);
+  }
+
+  renderWelcome() {
+    if (!doc) return;
+    $('#welcomeTitle').textContent = `Welcome back, ${this.profile.state.user.name}`;
+    $('#streakVal').textContent = computeStreak(this.profile.logs);
+    const lastLog = [...this.profile.logs].sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+    $('#lastWorkoutVal').textContent = lastLog ? `${lastLog.plan.style} · ${lastLog.plan.format}` : '—';
+    $('#lastStyleChip').textContent = formatPlanSummary(ensureTodayPlan());
+    $('#motivationQuote').textContent = randomFrom(MOTIVATIONAL_QUOTES, Math.random);
+  }
+
+  updateEquipmentOptions() {
+    if (!doc || !this.equipmentSelect) return;
+    const options = this.profile.state.style === 'custom'
+      ? CUSTOM_EQUIPMENT_OPTIONS
+      : (EQUIPMENT_VARIANTS[this.profile.state.style] || ['freeweight']);
+    this.equipmentSelect.innerHTML = '';
+    options.forEach((option) => {
+      const opt = doc.createElement('option');
+      opt.value = option;
+      opt.textContent = option.charAt(0).toUpperCase() + option.slice(1);
+      this.equipmentSelect.appendChild(opt);
+    });
+    if (!options.includes(this.profile.state.equipment)) {
+      this.profile.updateSelection({ equipment: options[0] });
+    }
+    this.equipmentSelect.value = this.profile.state.equipment;
+  }
+
+  renderPlanScreen(force = false) {
+    if (!doc) return;
+    if (!force && this.currentPlan) return;
+    this.currentPlan = ensureTodayPlan();
+    if (force) {
+      this.currentPlan = generateWorkoutPlan(new Date(), this.profile.state);
+      this.profile.cachePlan({ ...this.currentPlan, customMuscles: this.profile.state.customMuscles });
+    }
+    this.drawPlan(this.currentPlan);
+    if (force) {
+      this.renderWelcome();
+    }
+  }
+
+  drawPlan(plan) {
+    if (!doc) return;
+    this.planBlocks.innerHTML = '';
+    this.planFocus.textContent = formatPlanSummary(plan);
+    this.planRotation.textContent = `${plan.mode.toUpperCase()} rotation`;
+    this.planDuration.textContent = `${plan.estimatedMinutes} minutes`;    
+
+    this.goalFocusList.innerHTML = '';
+    plan.goalFocus.forEach((item) => {
+      const li = doc.createElement('li');
+      li.textContent = item;
+      this.goalFocusList.appendChild(li);
+    });
+
+    plan.blocks.forEach((block, blockIndex) => {
+      const section = doc.createElement('section');
+      section.className = 'card workout-block';
+      section.innerHTML = `
+        <header class="card__header">
+          <h3 class="headline-sm">${block.title}</h3>
+        </header>
+      `;
+      const list = doc.createElement('ol');
+      list.className = 'exercise-list';
+      (block.exercises || []).forEach((exercise, exerciseIndex) => {
+        const item = doc.createElement('li');
+        item.innerHTML = `
+          <div class="exercise-name">${exercise.name}${exercise.main ? ' · <span class="tag">Main</span>' : ''}</div>
+          <div class="exercise-meta">${exercise.sets ? `${exercise.sets} sets` : ''} ${exercise.reps ? `· ${exercise.reps}` : ''}</div>
+        `;
+        const weightInput = doc.createElement('input');
+        weightInput.type = 'number';
+        weightInput.placeholder = 'Load (kg)';
+        weightInput.className = 'input weight-input';
+        weightInput.dataset.block = blockIndex;
+        weightInput.dataset.index = exerciseIndex;
+        item.appendChild(weightInput);
+        list.appendChild(item);
+      });
+      section.appendChild(list);
+      this.planBlocks.appendChild(section);
+    });
+
+    this.hiitList.innerHTML = '';
+    plan.hiit.forEach((movement) => {
+      const li = doc.createElement('li');
+      li.textContent = movement;
+      this.hiitList.appendChild(li);
+    });
+  }
+
+  collectWeights() {
+    const weights = [];
+    $$('.weight-input').forEach((input) => {
+      if (input.value) {
+        weights.push({ block: Number(input.dataset.block), index: Number(input.dataset.index), weight: Number(input.value) });
+      }
+    });
+    return weights;
+  }
+
+  submitFeedback() {
+    const plan = this.currentPlan || ensureTodayPlan();
+    const weights = this.collectWeights();
+    const feedback = $('input[name="feedback"]:checked')?.value || 'good';
+    const notes = $('#feedbackNotes').value.trim();
+    const { levelUp } = this.profile.recordSession(plan, feedback, weights, notes);
+    this.profile.adjustIntensity(feedback);
+    renderHistory(this.profile.logs);
+    renderProgressChart(this.profile.logs);
+    this.renderWelcome();
+    if (this.levelSelect) {
+      this.levelSelect.value = this.profile.state.level;
+    }
+    let message = 'Feedback stored. Tomorrow’s plan will adapt.';
+    if (levelUp) {
+      message += ` Level advanced from ${levelUp.from} to ${levelUp.to}.`;
+      this.renderPlanScreen(true);
+    }
+    alert(message);
+    this.activateStep(0);
+  }
 }
 
-function adjustIntensity(feedback) {
-  if (feedback === 'easy') STATE.intensityBias = Math.min(1.4, STATE.intensityBias + 0.05);
-  if (feedback === 'hard') STATE.intensityBias = Math.max(0.7, STATE.intensityBias - 0.05);
-  save('intensityBias', STATE.intensityBias);
-}
-
-function submitFeedback() {
-  const plan = ensureTodayPlan();
-  const weights = collectWeights();
-  const feedback = $('input[name="feedback"]:checked')?.value || 'good';
-  const notes = $('#feedbackNotes').value.trim();
-  const mainLiftWeight = determineMainLiftWeight(weights, plan);
-  const entry = {
-    date: todayKey(),
-    plan,
-    weights,
-    feedback,
-    notes,
-    mainLiftWeight,
-  };
-  STATE.logs = STATE.logs.filter((log) => log.date !== entry.date);
-  STATE.logs.push(entry);
-  save('logs', STATE.logs);
-  adjustIntensity(feedback);
-  renderWelcome();
-  renderHistory();
-  renderProgressChart();
-  alert('Feedback stored. Tomorrow’s plan will adapt.');
-  activate('#screen-welcome');
-}
-
-function showStyleModal() {
-  if (!doc) return;
-  const modal = $('#styleModal');
-  if (!modal) return;
-  modal.hidden = false;
-  updateEquipmentOptions();
-}
-
-function initWelcomeActions() {
-  if (!doc) return;
-  $('#btnChooseStyle').addEventListener('click', () => {
-    showStyleModal();
-  });
-  $('#btnContinueLast').addEventListener('click', () => {
-    renderPlanScreen();
-    activate('#screen-plan');
-  });
-}
-
-function initPlanActions() {
-  if (!doc) return;
-  $('#linkChangeStyle').addEventListener('click', () => {
-    showStyleModal();
-  });
-  $('#btnMarkDone').addEventListener('click', submitFeedback);
-  $('#btnBackHome').addEventListener('click', () => activate('#screen-welcome'));
-}
-
-function boot() {
-  if (!doc) return;
-  initMenu();
-  initLang();
-  initStyleModal();
-  initWelcomeActions();
-  initPlanActions();
-  ensureTodayPlan();
-  applyLang();
-  renderPlanScreen();
-  renderWelcome();
-}
+/* -------------------------------------------------------------------------- */
+/* Bootstrapping                                                              */
+/* -------------------------------------------------------------------------- */
 
 if (doc) {
-  doc.addEventListener('DOMContentLoaded', boot);
+  const muscleSelector = new MuscleSelector(MUSCLE_LAYOUT);
+  const planner = new PlannerUI(profileManager, generator, muscleSelector);
+  planner.init();
 }
 
-module.exports = { generateWorkoutPlan, HIIT_LIBRARY, CALISTHENICS_MOVES };
-
+module.exports = {
+  generateWorkoutPlan,
+  HIIT_LIBRARY,
+  CALISTHENICS_MOVES,
+  CUSTOM_LIBRARY,
+  MOTIVATIONAL_QUOTES,
+};
