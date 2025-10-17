@@ -7,170 +7,197 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="appbar">
-      <div class="appbar__title" data-i18n="appTitle">Yodha Arc — Forge Your Steel</div>
-      <div class="appbar__actions">
-        <button id="btnMenu" class="icon-btn" aria-label="Menu" title="Menu">☰</button>
-      </div>
+    <header class="neo-appbar">
+      <div class="neo-brand">Yodha Arc</div>
+      <div class="neo-sub">Adaptive training intelligence</div>
     </header>
 
-    <div id="menuOverlay" class="menu-overlay"></div>
-    <nav id="menu" class="menu">
-      <button id="btnMenuClose" class="icon-btn menu__close" aria-label="Close menu">✕</button>
-      <label class="menu__label" for="languageSelect">Language</label>
-      <select id="languageSelect" aria-label="Language">
-        <option value="en">English</option>
-        <option value="te">తెలుగు</option>
-      </select>
-      <button id="btnSettings" class="btn menu-item" data-i18n="settings">Settings</button>
-    </nav>
-
     <main id="app" class="viewport">
-      <section id="screen-welcome" class="screen" data-screen="welcome">
-        <h1 id="welcomeTitle" class="headline"></h1>
-        <div class="grid grid--stats">
-          <article class="card stat">
-            <div class="stat__label" data-i18n="streak">Streak</div>
-            <div id="streakVal" class="stat__value">0</div>
-          </article>
-          <article class="card stat">
-            <div class="stat__label" data-i18n="lastWorkout">Last workout</div>
-            <div id="lastWorkoutVal" class="stat__value">—</div>
-          </article>
-          <article class="card stat">
-            <div class="stat__label" data-i18n="time">Time (IST)</div>
-            <div id="timeVal" class="stat__value">—</div>
-          </article>
+      <section id="screen-welcome" class="screen">
+        <div class="hero-panel">
+          <div class="hero-copy">
+            <h1 id="welcomeTitle" class="hero-title">Welcome back, Warrior</h1>
+            <p id="motivationQuote" class="hero-quote">Steel is forged under pressure—so are you.</p>
+            <button id="btnStartExperience" class="btn btn-primary btn-lg">Launch today’s arc</button>
+          </div>
+          <div class="hero-stats">
+            <div class="stat-card">
+              <span class="stat-label">Streak</span>
+              <span id="streakVal" class="stat-value">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Last workout</span>
+              <span id="lastWorkoutVal" class="stat-value">—</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Time (IST)</span>
+              <span id="timeVal" class="stat-value">—</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Today’s focus</span>
+              <span id="lastStyleChip" class="chip">—</span>
+            </div>
+          </div>
         </div>
 
-        <section class="card mt stack">
-          <header class="card__header">
-            <h2 class="headline-sm" data-i18n="todaysFocus">Today’s focus</h2>
-          </header>
-          <p id="lastStyleChip" class="chip">—</p>
-          <div class="stack">
-            <button id="btnChooseStyle" class="btn btn-primary" data-i18n="chooseStyle">Choose Plan</button>
-            <button id="btnContinueLast" class="btn btn-ghost"><span data-i18n="continueLast">Open today’s plan</span></button>
+        <div id="flowStepper" class="flow-stepper">
+          <div class="flow-stepper__item active" data-step="0">Welcome</div>
+          <div class="flow-stepper__item" data-step="1">Experience</div>
+          <div class="flow-stepper__item" data-step="2">Level & Goal</div>
+          <div class="flow-stepper__item" data-step="3">Plan & Log</div>
+        </div>
+
+        <section id="step-landing" class="flow-section" data-step-section="0" aria-hidden="false" tabindex="-1">
+          <div class="grid two">
+            <article class="card translucent">
+              <header class="card__header">
+                <h2 class="headline-sm">Main lift progress</h2>
+              </header>
+              <canvas id="progressChart" width="480" height="240" class="chart"></canvas>
+            </article>
+            <article class="card translucent">
+              <header class="card__header">
+                <h2 class="headline-sm">Recent history</h2>
+              </header>
+              <ul id="historyList" class="history"></ul>
+            </article>
           </div>
         </section>
 
-        <section class="card mt">
-          <header class="card__header">
-            <h2 class="headline-sm" data-i18n="progressHeadline">Main lift progress</h2>
-          </header>
-          <canvas id="progressChart" width="360" height="180" class="chart"></canvas>
-        </section>
-
-        <section class="card mt">
-          <header class="card__header">
-            <h2 class="headline-sm" data-i18n="planHistory">Recent history</h2>
-          </header>
-          <ul id="historyList" class="history"></ul>
-        </section>
-      </section>
-
-      <section id="screen-plan" class="screen" data-screen="plan" hidden>
-        <div class="row between">
-          <h2 class="headline" data-i18n="instructionsHeadline">Session breakdown</h2>
-          <button class="link" id="linkChangeStyle" data-i18n="changeStyle">Change plan</button>
-        </div>
-
-        <section class="card mt">
-          <header class="card__header">
-            <h3 class="headline-sm" data-i18n="todaysFocus">Today’s focus</h3>
-          </header>
-          <dl class="summary">
-            <div class="summary__item">
-              <dt data-i18n="todaysFocus">Today’s focus</dt>
-              <dd id="planFocus">—</dd>
+        <section id="step-experience" class="flow-section hidden" data-step-section="1" aria-hidden="true" tabindex="-1">
+          <div class="card translucent">
+            <header class="card__header">
+              <h2 class="headline-sm">Choose today’s experience</h2>
+              <p class="sub">Rotate through environments or craft a bespoke muscle day.</p>
+            </header>
+            <div class="style-grid">
+              <button type="button" class="style-option" data-style="gym" aria-pressed="false">
+                <span class="style-title">Gym Forge</span>
+                <span class="style-desc">Machines · Free weights · Calisthenics</span>
+              </button>
+              <button type="button" class="style-option" data-style="home" aria-pressed="false">
+                <span class="style-title">Home Stronghold</span>
+                <span class="style-desc">Minimal kit · Dumbbells · Flow</span>
+              </button>
+              <button type="button" class="style-option" data-style="outdoor" aria-pressed="false">
+                <span class="style-title">Outdoor Hunt</span>
+                <span class="style-desc">Run · Swim · Calisthenics</span>
+              </button>
+              <button type="button" class="style-option style-option--custom" data-style="custom" aria-pressed="false">
+                <span class="style-title">Custom Sculpt</span>
+                <span class="style-desc">Tap muscles · Mix PPL · Total freedom</span>
+              </button>
             </div>
-            <div class="summary__item">
-              <dt data-i18n="rotationLabel">Rotation</dt>
-              <dd id="planRotation">—</dd>
+            <div class="stack mt hidden" id="customBuilderPanel">
+              <p class="sub">Tap up to three focus areas on the anatomy map to craft a bespoke split.</p>
+              <div class="muscle-toolbar">
+                <span id="muscleSelectionCount" class="muscle-toolbar__count">0 of 3 focus areas selected</span>
+                <button type="button" id="btnClearMuscles" class="btn btn-ghost btn-xs">Clear selection</button>
+              </div>
+              <div id="muscleSelector" class="muscle-selector"></div>
             </div>
-            <div class="summary__item">
-              <dt data-i18n="durationLabel">Estimated duration</dt>
-              <dd id="planDuration">—</dd>
+            <div class="actions">
+              <button class="btn btn-ghost btn-step" data-next-step="0">Cancel</button>
+              <button class="btn btn-primary btn-step" data-next-step="2">Next</button>
             </div>
-          </dl>
-          <h4 class="headline-xs" data-i18n="goalLabel">Goal</h4>
-          <ul id="goalFocusList" class="bullet"></ul>
+          </div>
         </section>
 
-        <section class="card mt">
-          <header class="card__header">
-            <h3 class="headline-sm" data-i18n="warmupTitle">Warm-up (10 min)</h3>
-          </header>
-          <p>Joint mobilisations · Breathing drills · Ramped sets of the main lift.</p>
+        <section id="step-level" class="flow-section hidden" data-step-section="2" aria-hidden="true" tabindex="-1">
+          <div class="card translucent">
+            <header class="card__header">
+              <h2 class="headline-sm">Dial in your profile</h2>
+              <p class="sub">Complete 30 beginner sessions to unlock Intermediate, then 40 more to reach Advanced.</p>
+            </header>
+            <div class="grid two">
+              <label class="field">
+                <span>Level</span>
+                <select id="levelSelect" class="input">
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Primary goal</span>
+                <select id="goalSelect" class="input">
+                  <option value="strength">Strength</option>
+                  <option value="hypertrophy">Hypertrophy</option>
+                  <option value="fatloss">Fat Loss</option>
+                  <option value="endurance">Endurance</option>
+                </select>
+              </label>
+            </div>
+            <label class="field mt">
+              <span>Equipment focus</span>
+              <select id="equipmentSelect" class="input"></select>
+            </label>
+            <div class="actions">
+              <button class="btn btn-ghost btn-step" data-next-step="1">Back</button>
+              <button class="btn btn-primary btn-step" data-next-step="3">Preview plan</button>
+            </div>
+          </div>
         </section>
 
-        <section id="planBlocks" class="stack mt"></section>
-
-        <section class="card mt">
-          <header class="card__header">
-            <h3 class="headline-sm" data-i18n="hiitTitle">Mandatory 7-minute HIIT Finisher</h3>
-            <p class="sub" data-i18n="hiitSubtitle">Complete each movement for 60 seconds with 5 seconds change-over.</p>
-          </header>
-          <ol id="hiitList" class="hiit-list"></ol>
-        </section>
-
-        <section class="card mt">
-          <header class="card__header">
-            <h3 class="headline-sm" data-i18n="feedbackHeadline">Dial-in feedback</h3>
-          </header>
-          <fieldset class="feedback-group">
-            <legend data-i18n="feedbackPrompt">How did today feel?</legend>
-            <label><input type="radio" name="feedback" value="easy" /> <span data-i18n="feedbackEasy">Too Easy</span></label>
-            <label><input type="radio" name="feedback" value="good" checked /> <span data-i18n="feedbackGood">Just Right</span></label>
-            <label><input type="radio" name="feedback" value="hard" /> <span data-i18n="feedbackHard">Too Tough</span></label>
-          </fieldset>
-          <textarea id="feedbackNotes" rows="3" class="input" data-i18n-placeholder="notesPlaceholder" placeholder="Notes, energy, anything worth remembering…"></textarea>
-          <div class="stack mt">
-            <button id="btnMarkDone" class="btn btn-success" data-i18n="markDone">Mark workout complete</button>
-            <button id="btnBackHome" class="btn btn-ghost" data-i18n="back">Back</button>
+        <section id="step-plan" class="flow-section hidden" data-step-section="3" aria-hidden="true" tabindex="-1">
+          <div class="card translucent">
+            <header class="card__header">
+              <div>
+                <h2 class="headline-sm">Session breakdown</h2>
+                <p class="sub">Warm-up 10 min · HIIT finisher 7 min — capped at 70 total minutes.</p>
+              </div>
+              <button class="btn btn-ghost btn-step" data-next-step="1">Change</button>
+            </header>
+            <dl class="summary">
+              <div class="summary__item">
+                <dt>Focus</dt>
+                <dd id="planFocus">—</dd>
+              </div>
+              <div class="summary__item">
+                <dt>Rotation</dt>
+                <dd id="planRotation">—</dd>
+              </div>
+              <div class="summary__item">
+                <dt>Estimated duration</dt>
+                <dd id="planDuration">—</dd>
+              </div>
+            </dl>
+            <h4 class="headline-xs">Goal cues</h4>
+            <ul id="goalFocusList" class="bullet"></ul>
+            <section class="card nested mt">
+              <header class="card__header">
+                <h3 class="headline-sm">Warm-up (10 min)</h3>
+              </header>
+              <p>Joint mobilisations · Breathing drills · Ramped sets of the main lift.</p>
+            </section>
+            <section id="planBlocks" class="stack mt"></section>
+            <section class="card nested mt">
+              <header class="card__header">
+                <h3 class="headline-sm">Mandatory 7-minute HIIT Finisher</h3>
+                <p class="sub">60 seconds work · 5 seconds transition.</p>
+              </header>
+              <ol id="hiitList" class="hiit-list"></ol>
+            </section>
+            <section class="card nested mt">
+              <header class="card__header">
+                <h3 class="headline-sm">Dial-in feedback</h3>
+              </header>
+              <fieldset class="feedback-group">
+                <legend>How did today feel?</legend>
+                <label><input type="radio" name="feedback" value="easy" /> Too Easy</label>
+                <label><input type="radio" name="feedback" value="good" checked /> Just Right</label>
+                <label><input type="radio" name="feedback" value="hard" /> Too Tough</label>
+              </fieldset>
+              <textarea id="feedbackNotes" rows="3" class="input" placeholder="Notes, energy, anything worth remembering…"></textarea>
+              <div class="actions mt">
+                <button id="btnMarkDone" class="btn btn-success">Mark workout complete</button>
+                <button id="btnBackHome" class="btn btn-ghost">Back to dashboard</button>
+              </div>
+            </section>
           </div>
         </section>
       </section>
     </main>
-
-    <div id="styleModal" class="style-modal" hidden>
-      <div class="style-modal__body">
-        <h2 class="headline" data-i18n="chooseStyle">Choose Plan</h2>
-        <p class="sub">Home, gym, and outdoor options with calisthenics everywhere.</p>
-        <div class="grid grid--styles">
-          <button class="style-card" data-style="gym">
-            <div class="style-title">Gym</div>
-            <div class="style-desc">Machines, freeweights, calisthenics</div>
-          </button>
-          <button class="style-card" data-style="home">
-            <div class="style-title">Home</div>
-            <div class="style-desc">Minimal, DB, calisthenics</div>
-          </button>
-          <button class="style-card" data-style="outdoor">
-            <div class="style-title">Outdoor</div>
-            <div class="style-desc">Running, swimming, calisthenics</div>
-          </button>
-        </div>
-        <div class="stack mt">
-          <label for="levelSelect" data-i18n="levelLabel">Level</label>
-          <select id="levelSelect" class="input">
-            <option value="Beginner">Beginner</option>
-            <option value="Intermediate">Intermediate</option>
-            <option value="Advanced">Advanced</option>
-          </select>
-          <label for="goalSelect" data-i18n="goalLabel">Goal</label>
-          <select id="goalSelect" class="input">
-            <option value="strength">Strength</option>
-            <option value="hypertrophy">Hypertrophy</option>
-            <option value="fatloss">Fat Loss</option>
-            <option value="endurance">Endurance</option>
-          </select>
-          <label for="equipmentSelect" data-i18n="equipmentLabel">Equipment focus</label>
-          <select id="equipmentSelect" class="input"></select>
-        </div>
-        <button id="styleClose" class="btn btn-primary mt" data-i18n="startPlan">View full plan</button>
-      </div>
-    </div>
 
     <footer class="footer">© 2025 Yodha Arc</footer>
     <script src="app.js"></script>
