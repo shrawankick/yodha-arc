@@ -428,6 +428,13 @@ const MUSCLE_LAYOUT = [
   { id: 'calves', label: 'Calves', path: 'M95 320 Q100 310 105 320 Q110 360 100 400 Q90 360 95 320 Z', side: 'front' },
 ];
 
+const MUSCLE_COMBOS = [
+  { id: 'push', label: 'Push power', muscles: ['chest', 'shoulders', 'triceps'] },
+  { id: 'pull', label: 'Pull density', muscles: ['back', 'biceps', 'forearms'] },
+  { id: 'legs', label: 'Lower body symphony', muscles: ['quads', 'hamstrings', 'calves'] },
+  { id: 'athlete', label: 'Athlete engine', muscles: ['core', 'back', 'glutes'] },
+];
+
 /* -------------------------------------------------------------------------- */
 /* Utility functions                                                           */
 /* -------------------------------------------------------------------------- */
@@ -1001,31 +1008,50 @@ class MuscleSelector {
     this.statusNode = null;
     this.limitTimer = null;
     this.onChange = null;
+    this.view = 'front';
+    this.svg = null;
   }
 
-  mount(container, statusNode) {
+  mount(container, statusNode, view = this.view) {
     if (!doc || !container) return;
     this.container = container;
     this.statusNode = statusNode || null;
+    this.view = view || 'front';
     container.innerHTML = '';
     const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 200 420');
     svg.setAttribute('class', 'muscle-map');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'Interactive muscle selector');
 
     this.layout.forEach((region) => {
       const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', region.path);
       path.dataset.muscle = region.id;
+      path.dataset.side = region.side || 'front';
       path.setAttribute('class', 'muscle-region');
+      path.setAttribute('tabindex', '0');
+      path.setAttribute('role', 'switch');
+      path.setAttribute('aria-label', region.label);
+      path.setAttribute('aria-checked', 'false');
       path.addEventListener('click', () => this.toggle(region.id));
+      path.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          this.toggle(region.id);
+        }
+      });
       svg.appendChild(path);
     });
 
     container.appendChild(svg);
+    this.svg = svg;
     this.renderChipList();
+    this.applyView();
     this.syncPaths();
     this.updateChips();
     this.updateStatus();
+    this.syncAccessibility();
     this.emitChange();
   }
 
@@ -1042,6 +1068,8 @@ class MuscleSelector {
     this.syncPaths();
     this.updateChips();
     this.updateStatus();
+    this.syncAccessibility();
+    this.emitChange();
   }
 
   renderChipList() {
@@ -1114,6 +1142,8 @@ class MuscleSelector {
     this.syncPaths();
     this.updateChips();
     this.updateStatus();
+    this.syncAccessibility();
+    this.emitChange();
   }
 
   clear() {
@@ -1121,6 +1151,7 @@ class MuscleSelector {
     this.syncPaths();
     this.updateChips();
     this.updateStatus();
+    this.syncAccessibility();
     this.emitChange();
   }
 
@@ -1132,6 +1163,31 @@ class MuscleSelector {
     if (typeof this.onChange === 'function') {
       this.onChange(this.value());
     }
+  }
+
+  applyView() {
+    if (!this.container) return;
+    this.container.querySelectorAll('.muscle-region').forEach((node) => {
+      const side = node.dataset.side || 'front';
+      const visible = side === this.view;
+      node.classList.toggle('muscle-region--hidden', !visible);
+      node.setAttribute('aria-hidden', String(!visible));
+      node.tabIndex = visible ? 0 : -1;
+    });
+  }
+
+  setView(view) {
+    if (!view) return;
+    this.view = view;
+    this.applyView();
+  }
+
+  syncAccessibility() {
+    if (!this.container) return;
+    this.container.querySelectorAll('.muscle-region').forEach((node) => {
+      const checked = this.selected.has(node.dataset.muscle);
+      node.setAttribute('aria-checked', checked ? 'true' : 'false');
+    });
   }
 }
 
@@ -1147,6 +1203,9 @@ class PlannerUI {
     this.currentPlan = null;
     this.lastGuidedStyle = this.profile.state.lastGuidedStyle
       || (this.profile.state.style === 'custom' ? 'gym' : this.profile.state.style);
+    this.activeView = 'front';
+    this.activeStep = 0;
+    this.maxStepReached = 0;
   }
 
   init() {
@@ -1185,6 +1244,8 @@ class PlannerUI {
     this.stepper = $('#flowStepper');
     this.stepperItems = this.stepper ? Array.from(this.stepper.querySelectorAll('[data-step]')) : [];
     this.stepSections = $$('.flow-section');
+    this.viewToggleButtons = $$('.muscle-view-toggle button');
+    this.comboGrid = $('#muscleComboGrid');
   }
 
   bindEvents() {
@@ -1208,6 +1269,25 @@ class PlannerUI {
         this.activateStep(step);
       });
     });
+
+    if (this.stepperItems?.length) {
+      this.stepperItems.forEach((item) => {
+        item.addEventListener('click', () => {
+          const step = Number(item.dataset.step);
+          if (Number.isNaN(step)) return;
+          if (step > this.maxStepReached + 1) return;
+          if (step === this.activeStep) return;
+          if (step === 2) {
+            this.syncCustomBuilder();
+          }
+          if (step === 3) {
+            this.updateStateFromSelectors();
+            this.renderPlanScreen(true);
+          }
+          this.activateStep(step);
+        });
+      });
+    }
 
     if (this.levelSelect) {
       this.levelSelect.value = this.profile.state.level;
@@ -1247,6 +1327,19 @@ class PlannerUI {
       });
     });
 
+    if (this.viewToggleButtons?.length) {
+      this.viewToggleButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (this.profile.state.style !== 'custom') return;
+          const view = btn.dataset.view || 'front';
+          if (view === this.activeView) return;
+          this.activeView = view;
+          this.syncViewToggle();
+          this.muscleSelector.setView(view);
+        });
+      });
+    }
+
     if (this.clearMusclesBtn) {
       this.clearMusclesBtn.addEventListener('click', () => {
         this.muscleSelector.clear();
@@ -1268,19 +1361,70 @@ class PlannerUI {
     });
   }
 
+  syncViewToggle() {
+    if (!this.viewToggleButtons?.length) return;
+    const disabled = this.profile.state.style !== 'custom';
+    this.viewToggleButtons.forEach((btn) => {
+      const view = btn.dataset.view || 'front';
+      const isActive = view === this.activeView && !disabled;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      btn.disabled = disabled;
+    });
+  }
+
+  renderCombos() {
+    if (!this.comboGrid) return;
+    this.comboGrid.innerHTML = '';
+    MUSCLE_COMBOS.forEach((combo) => {
+      const button = doc.createElement('button');
+      button.type = 'button';
+      button.className = 'combo-card';
+      button.dataset.combo = combo.id;
+      button.dataset.muscles = combo.muscles.slice().sort().join(',');
+      const labels = combo.muscles.map((id) => CUSTOM_LIBRARY[id]?.label || id);
+      button.innerHTML = `
+        <span class="combo-card__title">${combo.label}</span>
+        <span class="combo-card__meta">${labels.join(' · ')}</span>
+      `;
+      button.addEventListener('click', () => {
+        this.muscleSelector.setValue(combo.muscles);
+      });
+      this.comboGrid.appendChild(button);
+    });
+  }
+
+  syncComboState(muscles = []) {
+    if (!this.comboGrid) return;
+    const key = muscles.slice().sort().join(',');
+    this.comboGrid.querySelectorAll('.combo-card').forEach((card) => {
+      const cardKey = (card.dataset.muscles || '').split(',').filter(Boolean).sort().join(',');
+      card.classList.toggle('is-active', cardKey === key && key.length > 0);
+    });
+  }
+
   syncCustomBuilder() {
     if (!this.muscleContainer) return;
     const isCustom = this.profile.state.style === 'custom';
     this.customBuilderPanel?.classList.toggle('hidden', !isCustom);
     if (isCustom) {
-      this.muscleSelector.mount(this.muscleContainer, this.muscleStatusCount);
+      this.muscleSelector.mount(this.muscleContainer, this.muscleStatusCount, this.activeView);
+      const stored = this.profile.state.customMuscles || [];
+      this.muscleSelector.setValue(stored);
       this.muscleSelector.setOnChange((muscles) => {
         this.profile.updateSelection({ customMuscles: muscles });
+        this.syncComboState(muscles);
         this.renderPlanScreen(true);
       });
-      this.muscleSelector.setValue(this.profile.state.customMuscles || []);
+      this.muscleSelector.setView(this.activeView);
+      this.syncViewToggle();
+      this.renderCombos();
+      this.syncComboState(stored);
+      this.muscleSelector.emitChange();
     } else {
       this.muscleSelector.setOnChange(null);
+      this.syncViewToggle();
     }
   }
 
@@ -1291,13 +1435,19 @@ class PlannerUI {
 
   activateStep(step) {
     if (!doc) return;
+    this.activeStep = step;
+    this.maxStepReached = Math.max(this.maxStepReached, step);
     if (this.stepperItems) {
       this.stepperItems.forEach((node) => {
         const nodeStep = Number(node.dataset.step);
         const isActive = nodeStep === step;
+        const isCompleted = nodeStep < this.maxStepReached;
+        const isEnabled = nodeStep <= this.maxStepReached + 1;
         node.classList.toggle('active', isActive);
-        node.classList.toggle('completed', nodeStep < step);
+        node.classList.toggle('completed', isCompleted && !isActive);
         node.setAttribute('aria-current', isActive ? 'step' : 'false');
+        node.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
+        node.tabIndex = isEnabled ? 0 : -1;
       });
     }
 
@@ -1368,6 +1518,9 @@ class PlannerUI {
     this.drawPlan(this.currentPlan);
     if (force) {
       this.renderWelcome();
+    }
+    if (this.profile.state.style === 'custom') {
+      this.syncComboState(this.profile.state.customMuscles || []);
     }
   }
 

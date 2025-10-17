@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="ambient" aria-hidden="true">
+      <span class="ambient__orb ambient__orb--one"></span>
+      <span class="ambient__orb ambient__orb--two"></span>
+      <span class="ambient__orb ambient__orb--three"></span>
+    </div>
     <header class="neo-appbar">
       <div class="neo-brand">Yodha Arc</div>
       <div class="neo-sub">Adaptive training intelligence</div>
@@ -94,7 +99,20 @@
                 <span id="muscleSelectionCount" class="muscle-toolbar__count">0 of 3 focus areas selected</span>
                 <button type="button" id="btnClearMuscles" class="btn btn-ghost btn-xs">Clear selection</button>
               </div>
-              <div id="muscleSelector" class="muscle-selector"></div>
+              <div class="muscle-designer">
+                <div class="muscle-visual">
+                  <div class="muscle-view-toggle" role="radiogroup" aria-label="Toggle anatomy view">
+                    <button type="button" class="toggle-pill is-active" data-view="front" aria-pressed="true">Front</button>
+                    <button type="button" class="toggle-pill" data-view="back" aria-pressed="false">Back</button>
+                  </div>
+                  <div id="muscleSelector" class="muscle-selector" aria-live="polite"></div>
+                </div>
+                <aside class="muscle-recipes">
+                  <h3 class="headline-xs">Suggested splits</h3>
+                  <p class="sub">Autofill with proven stacks or build your own mix.</p>
+                  <div id="muscleComboGrid" class="combo-grid"></div>
+                </aside>
+              </div>
             </div>
             <div class="actions">
               <button class="btn btn-ghost btn-step" data-next-step="0">Cancel</button>
